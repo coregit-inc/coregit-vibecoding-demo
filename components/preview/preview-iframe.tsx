@@ -1,6 +1,8 @@
 "use client";
 
-import { Loader2, Globe } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Loader2, Globe, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PreviewIframeProps {
   url: string | null;
@@ -8,8 +10,32 @@ interface PreviewIframeProps {
 }
 
 export function PreviewIframe({ url, status }: PreviewIframeProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [iframeFailed, setIframeFailed] = useState(false);
+
+  // Detect if iframe loads or fails (Firefox cross-origin issue)
+  useEffect(() => {
+    if (!url) {
+      setIframeLoaded(false);
+      setIframeFailed(false);
+      return;
+    }
+
+    setIframeLoaded(false);
+    setIframeFailed(false);
+
+    // If iframe hasn't loaded after 5s, show fallback
+    const timeout = setTimeout(() => {
+      if (!iframeLoaded) {
+        setIframeFailed(true);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [url]);
+
   if (!url) {
-    // Booting/syncing/installing/running — show loading
     const isLoading = status === "booting" || status === "syncing" || status === "installing" || status === "running";
     const statusLabels: Record<string, string> = {
       booting: "Starting preview environment",
@@ -43,10 +69,29 @@ export function PreviewIframe({ url, status }: PreviewIframeProps) {
   }
 
   return (
-    <iframe
-      src={url}
-      className="w-full h-full border-0 rounded-b-lg"
-      title="Preview"
-    />
+    <div className="relative w-full h-full">
+      <iframe
+        ref={iframeRef}
+        src={url}
+        className="w-full h-full border-0 rounded-b-lg"
+        title="Preview"
+        onLoad={() => setIframeLoaded(true)}
+      />
+      {/* Fallback for Firefox: open in new window */}
+      {iframeFailed && !iframeLoaded && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/90 text-muted-foreground">
+          <Globe className="size-8 opacity-40" />
+          <p className="text-sm">Preview may not work inline in this browser</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(url, "_blank")}
+          >
+            <ExternalLink className="size-3.5 mr-1.5" />
+            Open in new window
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
