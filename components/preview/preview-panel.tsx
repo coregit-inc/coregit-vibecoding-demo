@@ -14,6 +14,7 @@ interface PreviewPanelProps {
   previewUrl: string | null;
   previewStatus: string;
   repoSlug: string | null;
+  gitUrl: string | null;
   fileTree: TreeEntry[];
   isFileTreeLoading: boolean;
   selectedFile: string | null;
@@ -25,6 +26,7 @@ export function PreviewPanel({
   previewUrl,
   previewStatus,
   repoSlug,
+  gitUrl,
   fileTree,
   isFileTreeLoading,
   selectedFile,
@@ -78,7 +80,7 @@ export function PreviewPanel({
           <div className="flex-1 min-h-0 overflow-auto">
             <CommitHistory repoSlug={repoSlug} refreshKey={refreshKey} />
           </div>
-          <CloneSnippet repoSlug={repoSlug} />
+          <CloneSnippet gitUrl={gitUrl} />
         </TabsContent>
       </Tabs>
     </div>

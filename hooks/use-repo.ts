@@ -7,6 +7,7 @@ const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 export function useRepo() {
   const [repoSlug, setRepoSlug] = useState<string | null>(null);
+  const [gitUrl, setGitUrl] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const creatingRef = useRef(false);
 
@@ -14,20 +15,21 @@ export function useRepo() {
   useEffect(() => {
     const stored = sessionStorage.getItem("coregit-demo-repo");
     if (stored) setRepoSlug(stored);
+    const storedGitUrl = sessionStorage.getItem("coregit-demo-git-url");
+    if (storedGitUrl) setGitUrl(storedGitUrl);
   }, []);
 
   const ensureRepo = useCallback(async (): Promise<string> => {
-    // Return existing repo
     if (repoSlug) return repoSlug;
 
-    // Check sessionStorage
     const stored = sessionStorage.getItem("coregit-demo-repo");
     if (stored) {
       setRepoSlug(stored);
+      const storedGitUrl = sessionStorage.getItem("coregit-demo-git-url");
+      if (storedGitUrl) setGitUrl(storedGitUrl);
       return stored;
     }
 
-    // Prevent double creation
     if (creatingRef.current) {
       return new Promise((resolve) => {
         const interval = setInterval(() => {
@@ -56,8 +58,13 @@ export function useRepo() {
         throw new Error(`Failed to create repo: ${res.statusText}`);
       }
 
+      const data = await res.json();
+      const repoGitUrl = data.git_url || null;
+
       sessionStorage.setItem("coregit-demo-repo", slug);
+      if (repoGitUrl) sessionStorage.setItem("coregit-demo-git-url", repoGitUrl);
       setRepoSlug(slug);
+      setGitUrl(repoGitUrl);
       return slug;
     } finally {
       setIsCreating(false);
@@ -65,5 +72,5 @@ export function useRepo() {
     }
   }, [repoSlug]);
 
-  return { repoSlug, isCreating, ensureRepo };
+  return { repoSlug, gitUrl, isCreating, ensureRepo };
 }

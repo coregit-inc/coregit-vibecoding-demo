@@ -13,7 +13,7 @@ const MIN_CHAT_WIDTH = 360;
 const MAX_CHAT_WIDTH_RATIO = 0.7;
 
 export function AppShell() {
-  const { repoSlug, ensureRepo } = useRepo();
+  const { repoSlug, gitUrl, ensureRepo } = useRepo();
   const { items: fileTree, isLoading: isFileTreeLoading, refresh: refreshFileTree } = useFileTree(repoSlug);
   const { status: wcStatus, previewUrl, logs, boot, syncAndRun } = useWebContainer();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -79,6 +79,7 @@ export function AppShell() {
             previewUrl={previewUrl}
             previewStatus={wcStatus}
             repoSlug={repoSlug}
+            gitUrl={gitUrl}
             fileTree={fileTree}
             isFileTreeLoading={isFileTreeLoading}
             selectedFile={selectedFile}
