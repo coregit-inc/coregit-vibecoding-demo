@@ -1,4 +1,4 @@
-import { streamText, createUIMessageStreamResponse, stepCountIs } from "ai";
+import { streamText, createUIMessageStreamResponse, stepCountIs, convertToModelMessages } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { getCoregitClient } from "@/lib/coregit";
 import { createTools } from "@/lib/ai-tools";
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic("claude-haiku-4-5-20251001"),
     system: SYSTEM_PROMPT,
-    messages,
+    messages: convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(10),
   });
