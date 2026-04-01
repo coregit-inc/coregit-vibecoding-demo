@@ -45,8 +45,8 @@ export function PreviewIframe({ url, status }: PreviewIframeProps) {
   return (
     <iframe
       src={url}
-      className="w-full h-full border-0 bg-white rounded-b-lg"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+      className="w-full h-full border-0 rounded-b-lg"
+      allow="cross-origin-isolated"
       title="Preview"
     />
   );
