@@ -77,19 +77,27 @@ export function PreviewIframe({ url, status }: PreviewIframeProps) {
         title="Preview"
         onLoad={() => setIframeLoaded(true)}
       />
-      {/* Fallback for Firefox: open in new window */}
+      {/* Fallback: open in new window + browser hint */}
       {iframeFailed && !iframeLoaded && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/90 text-muted-foreground">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background/95 text-muted-foreground px-8 text-center">
           <Globe className="size-8 opacity-40" />
-          <p className="text-sm">Preview may not work inline in this browser</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(url, "_blank")}
-          >
-            <ExternalLink className="size-3.5 mr-1.5" />
-            Open in new window
-          </Button>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">Preview blocked by browser</p>
+            <p className="text-xs max-w-sm">
+              WebContainers require third-party cookies. In Firefox, go to Settings → Privacy → Cookies → Manage Exceptions and allow <code className="text-xs bg-muted px-1 rounded">webcontainer-api.io</code>
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(url, "_blank")}
+            >
+              <ExternalLink className="size-3.5 mr-1.5" />
+              Open in new window
+            </Button>
+          </div>
+          <p className="text-xs opacity-60">Works best in Chrome</p>
         </div>
       )}
     </div>
