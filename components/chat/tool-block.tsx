@@ -1,0 +1,125 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import {
+  FilePlus,
+  FileSearch,
+  Folder,
+  Trash2,
+  Loader2,
+  Check,
+  AlertCircle,
+} from "lucide-react";
+
+interface ToolBlockProps {
+  toolName: string;
+  args: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  isLoading?: boolean;
+}
+
+export function ToolBlock({ toolName, args, result, isLoading }: ToolBlockProps) {
+  const icon = getToolIcon(toolName);
+  const label = getToolLabel(toolName, args, result);
+  const files = getFileList(toolName, args, result);
+  const hasError = result && "error" in result;
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm",
+        hasError && "border-destructive/30"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {isLoading ? (
+          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+        ) : hasError ? (
+          <AlertCircle className="size-3.5 text-destructive" />
+        ) : (
+          <Check className="size-3.5 text-success" />
+        )}
+        <span className="text-muted-foreground">{icon as React.ReactNode}</span>
+        <span className="font-medium">{label}</span>
+      </div>
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-1 ml-5.5">
+          {files.map((f) => (
+            <Badge key={f} variant="secondary" className="font-mono text-xs">
+              {f}
+            </Badge>
+          ))}
+        </div>
+      )}
+      {hasError && result?.error != null && (
+        <p className="text-xs text-destructive ml-5.5">
+          {String(result.error as string)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function getToolIcon(toolName: string) {
+  switch (toolName) {
+    case "commitFiles":
+      return <FilePlus className="size-3.5" />;
+    case "deleteFiles":
+      return <Trash2 className="size-3.5" />;
+    case "readFile":
+      return <FileSearch className="size-3.5" />;
+    case "listFiles":
+      return <Folder className="size-3.5" />;
+    default:
+      return null;
+  }
+}
+
+function getToolLabel(
+  toolName: string,
+  args: Record<string, unknown>,
+  result?: Record<string, unknown>
+): string {
+  switch (toolName) {
+    case "commitFiles": {
+      const files = args.files as Array<{ path: string }> | undefined;
+      const count = files?.length || 0;
+      return result
+        ? `Committed ${count} file${count !== 1 ? "s" : ""}`
+        : `Writing ${count} file${count !== 1 ? "s" : ""}...`;
+    }
+    case "deleteFiles": {
+      const paths = args.paths as string[] | undefined;
+      const count = paths?.length || 0;
+      return result
+        ? `Deleted ${count} file${count !== 1 ? "s" : ""}`
+        : `Deleting ${count} file${count !== 1 ? "s" : ""}...`;
+    }
+    case "readFile":
+      return result
+        ? `Read ${args.path}`
+        : `Reading ${args.path}...`;
+    case "listFiles":
+      return result
+        ? `Listed ${(args.path as string) || "root"}`
+        : `Listing ${(args.path as string) || "root"}...`;
+    default:
+      return toolName;
+  }
+}
+
+function getFileList(
+  toolName: string,
+  args: Record<string, unknown>,
+  result?: Record<string, unknown>
+): string[] {
+  if (toolName === "commitFiles") {
+    const files = args.files as Array<{ path: string }> | undefined;
+    return files?.map((f) => f.path) || [];
+  }
+  if (toolName === "deleteFiles") {
+    return (args.paths as string[]) || [];
+  }
+  return [];
+}
