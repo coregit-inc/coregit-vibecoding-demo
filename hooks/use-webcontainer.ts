@@ -9,6 +9,8 @@ type Status = "idle" | "booting" | "ready" | "syncing" | "installing" | "running
 export function useWebContainer() {
   const instanceRef = useRef<WebContainer | null>(null);
   const devProcessRef = useRef<{ kill: () => void } | null>(null);
+  const serverReadyRegistered = useRef(false);
+  const hasRunBefore = useRef(false);
   const [status, setStatus] = useState<Status>("idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -22,6 +24,12 @@ export function useWebContainer() {
     setStatus("booting");
     try {
       instanceRef.current = await WebContainer.boot();
+      // Register server-ready once
+      instanceRef.current.on("server-ready", (_port, url) => {
+        console.log("[WebContainer] server-ready:", url);
+        setPreviewUrl(url);
+      });
+      serverReadyRegistered.current = true;
       setStatus("ready");
     } catch (err) {
       console.error("WebContainer boot failed:", err);
@@ -39,12 +47,14 @@ export function useWebContainer() {
 
       setStatus("syncing");
 
-      // Determine which files to sync
+      // First run: always fetch ALL files to get full project
+      // Subsequent runs: only sync changed files
       let filePaths: string[];
-      if (changedFiles && changedFiles.length > 0) {
-        filePaths = changedFiles;
-      } else {
+      if (!hasRunBefore.current || !changedFiles) {
         filePaths = await collectAllFilePaths(repoSlug);
+        hasRunBefore.current = true;
+      } else {
+        filePaths = changedFiles;
       }
 
       if (filePaths.length === 0) return;
@@ -81,6 +91,8 @@ export function useWebContainer() {
       if (devProcessRef.current) {
         devProcessRef.current.kill();
         devProcessRef.current = null;
+        // Small delay to let the port free up
+        await new Promise((r) => setTimeout(r, 500));
       }
 
       // Start dev server
@@ -96,11 +108,6 @@ export function useWebContainer() {
         },
       });
       devProcess.output.pipeTo(devWriter).catch(() => {});
-
-      // Listen for server ready
-      wc.on("server-ready", (_port, url) => {
-        setPreviewUrl(url);
-      });
     },
     [boot, addLog]
   );
