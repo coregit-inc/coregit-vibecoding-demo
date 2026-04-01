@@ -78,7 +78,7 @@ export function ChatView({ repoSlug, ensureRepo, onFilesChanged }: ChatViewProps
           </span>
           {repoSlug && (
             <Badge variant="outline" className="ml-1 shrink-0 text-xs">
-              private
+              public
             </Badge>
           )}
         </div>

@@ -28,6 +28,7 @@ export async function POST(req: Request) {
   const result = await coregit.repos.create({
     slug,
     description: "Created by Coregit Demo",
+    visibility: "public",
     init: true,
   });
 
