@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coregit Vibecoding Demo
+
+A Lovable-style AI code generation app powered by [Coregit](https://coregit.dev) — the serverless Git backend for AI-native products.
+
+**Type a prompt, get a running app.** The AI generates code, commits it to Coregit with a single API call, and runs it live in your browser via WebContainer.
+
+## How it works
+
+```
+You: "Build me a todo app with dark mode"
+  ↓
+AI generates code (React + Vite + Tailwind)
+  ↓
+Files committed atomically to Coregit (1 API call = N files)
+  ↓
+WebContainer boots in browser → npm install → npm run dev
+  ↓
+Live preview appears. Iterate with follow-up prompts.
+```
+
+## Why Coregit
+
+Traditional Git APIs require **7-14 HTTP calls** to commit multiple files (create blobs → create tree → create commit → update ref). Coregit does it in **one call**:
+
+```bash
+curl -X POST https://api.coregit.dev/v1/repos/my-app/commits \
+  -H "x-api-key: $COREGIT_API_KEY" \
+  -d '{
+    "branch": "main",
+    "message": "Add todo app",
+    "author": { "name": "AI", "email": "ai@coregit.dev" },
+    "changes": [
+      { "path": "package.json", "content": "..." },
+      { "path": "src/App.tsx", "content": "..." },
+      { "path": "src/index.css", "content": "..." }
+    ]
+  }'
+```
+
+This makes Coregit ideal for AI agents that generate entire projects in one shot.
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| AI | Vercel AI SDK v6 + Claude Haiku 4.5 |
+| Git Backend | [Coregit API](https://coregit.dev) via `@strayl/coregit` SDK |
+| Preview | [WebContainer](https://webcontainers.io) (StackBlitz) |
+| UI | shadcn/ui (new-york) + Tailwind v4 |
+| Markdown | Streamdown + @streamdown/code |
 
 ## Getting Started
 
-First, run the development server:
+```bash
+git clone https://github.com/Strayl-Inc/coregit-vibecoding-demo.git
+cd coregit-vibecoding-demo
+npm install
+```
+
+Create `.env.local`:
+
+```bash
+COREGIT_API_KEY=cgk_...        # Get one at https://app.coregit.dev
+ANTHROPIC_API_KEY=sk-ant-...   # From https://console.anthropic.com
+```
+
+Run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and start prompting.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Chat interface** — strayl-style chat with streaming responses and tool call visualization
+- **Atomic commits** — AI writes all files in a single Coregit API call
+- **Live preview** — WebContainer runs the generated app right in the browser
+- **File explorer** — browse and view generated code with syntax highlighting
+- **Commit history** — see every version the AI created
+- **Git clone** — clone any generated repo with standard `git clone`
+- **Dark/light theme** — Coregit brand palette with system detection
+- **Resizable panels** — drag the divider between chat and preview
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+```
+Browser
+├── Chat Panel (left)
+│   ├── useChat() → POST /api/chat
+│   ├── Streaming AI responses
+│   └── Tool call blocks (commitFiles, readFile, etc.)
+│
+└── Preview Panel (right)
+    ├── WebContainer (live preview iframe)
+    ├── File Explorer + Code Viewer
+    └── Commit History + Clone Snippet
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Server (Next.js API Routes)
+├── POST /api/chat     → Vercel AI SDK streamText + tools
+├── POST /api/repos    → Coregit: create repo
+├── GET  /api/files/*  → Coregit: tree/blob
+└── GET  /api/commits  → Coregit: commit history
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tools (called by AI during generation)
+├── commitFiles  → POST /v1/repos/:slug/commits (atomic N-file commit)
+├── deleteFiles  → POST /v1/repos/:slug/commits (with action: "delete")
+├── readFile     → GET  /v1/repos/:slug/blob/:ref/:path
+└── listFiles    → GET  /v1/repos/:slug/tree/:ref/:path
+```
 
-## Deploy on Vercel
+## For Platform Builders
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This demo shows what you can build with Coregit. If you're building a platform like Lovable, Bolt, or Replit, Coregit gives you:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Single-call commits** — no multi-step blob/tree/commit dance
+- **Full Git protocol** — users can `git clone` and `git push`
+- **Snapshots** — named restore points for agent rollback
+- **Usage-based pricing** — no per-seat costs
+- **Zero ops** — serverless on Cloudflare Workers
+
+Check out [coregit.dev](https://coregit.dev) or [the docs](https://docs.coregit.dev).
+
+## License
+
+MIT
