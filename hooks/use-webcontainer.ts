@@ -26,8 +26,12 @@ export function useWebContainer() {
       instanceRef.current = await WebContainer.boot();
       // Register server-ready once
       instanceRef.current.on("server-ready", (_port, url) => {
-        console.log("[WebContainer] server-ready:", url);
+        console.log("[WebContainer] server-ready:", _port, url);
         setPreviewUrl(url);
+      });
+      instanceRef.current.on("error", (err) => {
+        console.error("[WebContainer] error:", err);
+        addLog(`WebContainer error: ${err.message}`);
       });
       serverReadyRegistered.current = true;
       setStatus("ready");

@@ -46,7 +46,6 @@ export function PreviewIframe({ url, status }: PreviewIframeProps) {
     <iframe
       src={url}
       className="w-full h-full border-0 rounded-b-lg"
-      allow="cross-origin-isolated"
       title="Preview"
     />
   );
