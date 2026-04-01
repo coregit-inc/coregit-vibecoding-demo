@@ -15,17 +15,12 @@ const MAX_CHAT_WIDTH_RATIO = 0.7;
 export function AppShell() {
   const { repoSlug, gitUrl, ensureRepo } = useRepo();
   const { items: fileTree, isLoading: isFileTreeLoading, refresh: refreshFileTree } = useFileTree(repoSlug);
-  const { status: wcStatus, previewUrl, logs, boot, syncAndRun } = useWebContainer();
+  const { status: wcStatus, previewUrl, logs, syncAndRun } = useWebContainer();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [chatWidth, setChatWidth] = useState<number | null>(null);
 
-  // Boot WebContainer on mount
-  useEffect(() => {
-    boot();
-  }, [boot]);
-
-  // Auto-sync WebContainer when repo is restored from session
+  // Auto-sync WebContainer when repo is restored from session (boots automatically)
   const hasSynced = useRef(false);
   useEffect(() => {
     if (repoSlug && !hasSynced.current && fileTree.length > 0) {

@@ -8,8 +8,8 @@ type Status = "idle" | "booting" | "ready" | "syncing" | "installing" | "running
 
 export function useWebContainer() {
   const instanceRef = useRef<WebContainer | null>(null);
+  const bootPromiseRef = useRef<Promise<WebContainer | null> | null>(null);
   const devProcessRef = useRef<{ kill: () => void } | null>(null);
-  const serverReadyRegistered = useRef(false);
   const hasRunBefore = useRef(false);
   const [status, setStatus] = useState<Status>("idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -19,43 +19,45 @@ export function useWebContainer() {
     setLogs((prev) => [...prev.slice(-200), line]);
   }, []);
 
-  const bootingRef = useRef(false);
+  const ensureBoot = useCallback(async (): Promise<WebContainer | null> => {
+    if (instanceRef.current) return instanceRef.current;
 
-  const boot = useCallback(async () => {
-    if (instanceRef.current || bootingRef.current) return;
-    bootingRef.current = true;
-    setStatus("booting");
-    try {
-      instanceRef.current = await WebContainer.boot();
-      // Register server-ready once
-      instanceRef.current.on("server-ready", (_port, url) => {
-        console.log("[WebContainer] server-ready:", _port, url);
-        setPreviewUrl(url);
-      });
-      instanceRef.current.on("error", (err) => {
-        console.error("[WebContainer] error:", err);
-        addLog(`WebContainer error: ${err.message}`);
-      });
-      serverReadyRegistered.current = true;
-      setStatus("ready");
-    } catch (err) {
-      console.error("WebContainer boot failed:", err);
-      setStatus("error");
-    }
+    // Reuse existing boot promise to prevent double boot
+    if (bootPromiseRef.current) return bootPromiseRef.current;
+
+    const promise = (async () => {
+      setStatus("booting");
+      try {
+        const wc = await WebContainer.boot();
+        instanceRef.current = wc;
+        wc.on("server-ready", (_port, url) => {
+          console.log("[WebContainer] server-ready:", _port, url);
+          setPreviewUrl(url);
+        });
+        wc.on("error", (err) => {
+          console.error("[WebContainer] error:", err);
+        });
+        setStatus("ready");
+        return wc;
+      } catch (err) {
+        console.error("WebContainer boot failed:", err);
+        setStatus("error");
+        bootPromiseRef.current = null;
+        return null;
+      }
+    })();
+
+    bootPromiseRef.current = promise;
+    return promise;
   }, []);
 
   const syncAndRun = useCallback(
     async (repoSlug: string, changedFiles?: string[]) => {
-      if (!instanceRef.current) {
-        await boot();
-      }
-      const wc = instanceRef.current;
+      const wc = await ensureBoot();
       if (!wc) return;
 
       setStatus("syncing");
 
-      // First run: always fetch ALL files to get full project
-      // Subsequent runs: only sync changed files
       let filePaths: string[];
       if (!hasRunBefore.current || !changedFiles) {
         filePaths = await collectAllFilePaths(repoSlug);
@@ -66,11 +68,9 @@ export function useWebContainer() {
 
       if (filePaths.length === 0) return;
 
-      // Fetch file contents and mount
       const tree = await fetchFilesAsTree(repoSlug, filePaths);
       await wc.mount(tree);
 
-      // Check if package.json changed → need npm install
       const needsInstall =
         !changedFiles || changedFiles.some((f) => f === "package.json");
 
@@ -79,12 +79,9 @@ export function useWebContainer() {
         addLog("$ npm install");
 
         const installProcess = await wc.spawn("npm", ["install"]);
-        const installWriter = new WritableStream({
-          write(chunk) {
-            addLog(chunk);
-          },
-        });
-        installProcess.output.pipeTo(installWriter).catch(() => {});
+        installProcess.output.pipeTo(new WritableStream({
+          write(chunk) { addLog(chunk); },
+        })).catch(() => {});
         const exitCode = await installProcess.exit;
 
         if (exitCode !== 0) {
@@ -94,30 +91,23 @@ export function useWebContainer() {
         }
       }
 
-      // Kill existing dev server
       if (devProcessRef.current) {
         devProcessRef.current.kill();
         devProcessRef.current = null;
-        // Small delay to let the port free up
         await new Promise((r) => setTimeout(r, 500));
       }
 
-      // Start dev server
       setStatus("running");
       addLog("$ npm run dev");
 
       const devProcess = await wc.spawn("npm", ["run", "dev"]);
       devProcessRef.current = devProcess;
-
-      const devWriter = new WritableStream({
-        write(chunk) {
-          addLog(chunk);
-        },
-      });
-      devProcess.output.pipeTo(devWriter).catch(() => {});
+      devProcess.output.pipeTo(new WritableStream({
+        write(chunk) { addLog(chunk); },
+      })).catch(() => {});
     },
-    [boot, addLog]
+    [ensureBoot, addLog]
   );
 
-  return { status, previewUrl, logs, boot, syncAndRun };
+  return { status, previewUrl, logs, syncAndRun };
 }
