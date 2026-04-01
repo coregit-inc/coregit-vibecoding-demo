@@ -20,33 +20,51 @@ interface ToolBlockProps {
 }
 
 export function ToolBlock({ toolName, args, result, isLoading }: ToolBlockProps) {
-  const icon = getToolIcon(toolName);
   const label = getToolLabel(toolName, args, result);
   const files = getFileList(toolName, args, result);
   const hasError = result && "error" in result;
+  const isDone = result && !hasError;
 
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm",
-        hasError && "border-destructive/30"
+        "flex flex-col gap-1.5 rounded-lg border px-3 py-2 text-sm",
+        hasError
+          ? "border-destructive/30 bg-destructive/5"
+          : isDone
+            ? "border-success/20 bg-success/5"
+            : "border-border/60 bg-muted/30"
       )}
     >
       <div className="flex items-center gap-2">
         {isLoading ? (
-          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+          <Loader2 className="size-3.5 animate-spin text-muted-foreground shrink-0" />
         ) : hasError ? (
-          <AlertCircle className="size-3.5 text-destructive" />
+          <AlertCircle className="size-3.5 text-destructive shrink-0" />
         ) : (
-          <Check className="size-3.5 text-success" />
+          <Check className="size-3.5 text-success-foreground shrink-0" />
         )}
-        <span className="text-muted-foreground">{icon as React.ReactNode}</span>
-        <span className="font-medium">{label}</span>
+        <span className={cn(
+          "shrink-0",
+          isDone ? "text-success-foreground" : "text-muted-foreground"
+        )}>
+          {getToolIcon(toolName)}
+        </span>
+        <span className={cn(
+          "font-medium",
+          isDone && "text-success-foreground"
+        )}>
+          {label}
+        </span>
       </div>
       {files.length > 0 && (
         <div className="flex flex-wrap gap-1 ml-5.5">
           {files.map((f) => (
-            <Badge key={f} variant="secondary" className="font-mono text-xs">
+            <Badge
+              key={f}
+              variant={isDone ? "success" : "secondary"}
+              className="font-mono text-xs"
+            >
               {f}
             </Badge>
           ))}
@@ -112,7 +130,7 @@ function getToolLabel(
 function getFileList(
   toolName: string,
   args: Record<string, unknown>,
-  result?: Record<string, unknown>
+  _result?: Record<string, unknown>
 ): string[] {
   if (toolName === "commitFiles") {
     const files = args.files as Array<{ path: string }> | undefined;
