@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { html } from "@codemirror/lang-html";
@@ -13,13 +14,8 @@ interface FileViewerProps {
   filePath: string | null;
 }
 
-function getExtension(path: string): string {
-  const parts = path.split(".");
-  return parts.length > 1 ? parts[parts.length - 1] : "";
-}
-
 function getLanguageExtension(path: string) {
-  const ext = getExtension(path);
+  const ext = path.split(".").pop() || "";
   switch (ext) {
     case "ts":
     case "tsx":
@@ -41,6 +37,7 @@ function getLanguageExtension(path: string) {
 export function FileViewer({ repoSlug, filePath }: FileViewerProps) {
   const [content, setContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (!repoSlug || !filePath) {
@@ -91,6 +88,7 @@ export function FileViewer({ repoSlug, filePath }: FileViewerProps) {
       </div>
       <CodeMirror
         value={content || ""}
+        theme={resolvedTheme === "dark" ? "dark" : "light"}
         extensions={[getLanguageExtension(filePath)]}
         readOnly
         basicSetup={{
