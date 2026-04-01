@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
+
+const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 export function useRepo() {
   const [repoSlug, setRepoSlug] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export function useRepo() {
     creatingRef.current = true;
     setIsCreating(true);
 
-    const slug = `demo-${nanoid(8)}`;
+    const slug = `demo-${nanoid()}`;
 
     try {
       const res = await fetch("/api/repos", {
