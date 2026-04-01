@@ -30,7 +30,7 @@ export function TerminalOutput({ logs }: TerminalOutputProps) {
   const cleaned = logs
     .map(stripAnsi)
     .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+    .filter((l) => l.length > 1); // filter spinner chars (-, /, \, |) and empty
 
   if (cleaned.length === 0) return null;
 
