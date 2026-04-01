@@ -19,8 +19,11 @@ export function useWebContainer() {
     setLogs((prev) => [...prev.slice(-200), line]);
   }, []);
 
+  const bootingRef = useRef(false);
+
   const boot = useCallback(async () => {
-    if (instanceRef.current) return;
+    if (instanceRef.current || bootingRef.current) return;
+    bootingRef.current = true;
     setStatus("booting");
     try {
       instanceRef.current = await WebContainer.boot();

@@ -14,9 +14,24 @@ export function useRepo() {
   // Restore from sessionStorage on mount
   useEffect(() => {
     const stored = sessionStorage.getItem("coregit-demo-repo");
-    if (stored) setRepoSlug(stored);
-    const storedGitUrl = sessionStorage.getItem("coregit-demo-git-url");
-    if (storedGitUrl) setGitUrl(storedGitUrl);
+    if (stored) {
+      setRepoSlug(stored);
+      const storedGitUrl = sessionStorage.getItem("coregit-demo-git-url");
+      if (storedGitUrl) {
+        setGitUrl(storedGitUrl);
+      } else {
+        // Fetch git_url for repos created before this feature
+        fetch(`/api/repos?slug=${stored}`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((data) => {
+            if (data?.git_url) {
+              sessionStorage.setItem("coregit-demo-git-url", data.git_url);
+              setGitUrl(data.git_url);
+            }
+          })
+          .catch(() => {});
+      }
+    }
   }, []);
 
   const ensureRepo = useCallback(async (): Promise<string> => {
