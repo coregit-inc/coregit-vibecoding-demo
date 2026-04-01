@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export interface TreeEntry {
   name: string;
@@ -32,6 +32,11 @@ export function useFileTree(repoSlug: string | null) {
     },
     [repoSlug]
   );
+
+  // Auto-load when repoSlug becomes available
+  useEffect(() => {
+    if (repoSlug) refresh();
+  }, [repoSlug, refresh]);
 
   return { items, isLoading, refresh };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ChatView } from "@/components/chat/chat-view";
 import { PreviewPanel } from "@/components/preview/preview-panel";
 import { TerminalOutput } from "@/components/terminal/terminal-output";
@@ -24,6 +24,15 @@ export function AppShell() {
   useEffect(() => {
     boot();
   }, [boot]);
+
+  // Auto-sync WebContainer when repo is restored from session
+  const hasSynced = useRef(false);
+  useEffect(() => {
+    if (repoSlug && !hasSynced.current && fileTree.length > 0) {
+      hasSynced.current = true;
+      syncAndRun(repoSlug);
+    }
+  }, [repoSlug, fileTree, syncAndRun]);
 
   // Initialize chat width to 50% on mount
   useEffect(() => {

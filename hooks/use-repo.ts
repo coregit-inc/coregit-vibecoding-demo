@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { customAlphabet } from "nanoid";
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
@@ -9,6 +9,12 @@ export function useRepo() {
   const [repoSlug, setRepoSlug] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const creatingRef = useRef(false);
+
+  // Restore from sessionStorage on mount
+  useEffect(() => {
+    const stored = sessionStorage.getItem("coregit-demo-repo");
+    if (stored) setRepoSlug(stored);
+  }, []);
 
   const ensureRepo = useCallback(async (): Promise<string> => {
     // Return existing repo
