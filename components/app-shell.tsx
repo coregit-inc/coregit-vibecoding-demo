@@ -52,6 +52,26 @@ export function AppShell() {
     [repoSlug, refreshFileTree, syncAndRun]
   );
 
+  const handleRestore = useCallback(
+    async (sha: string) => {
+      if (!repoSlug) return;
+      const res = await fetch("/api/refs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: repoSlug, sha }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Restore failed");
+      }
+      // Full re-sync: refresh file tree and re-mount all files in WebContainer
+      refreshFileTree();
+      setRefreshKey((k) => k + 1);
+      syncAndRun(repoSlug);
+    },
+    [repoSlug, refreshFileTree, syncAndRun]
+  );
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Chat Panel — left side */}
@@ -80,6 +100,7 @@ export function AppShell() {
             selectedFile={selectedFile}
             onFileSelect={setSelectedFile}
             refreshKey={refreshKey}
+            onRestore={handleRestore}
           />
         </div>
         {logs.length > 0 && <TerminalOutput logs={logs} />}

@@ -20,6 +20,7 @@ interface PreviewPanelProps {
   selectedFile: string | null;
   onFileSelect: (path: string) => void;
   refreshKey?: number;
+  onRestore?: (sha: string) => Promise<void>;
 }
 
 export function PreviewPanel({
@@ -32,6 +33,7 @@ export function PreviewPanel({
   selectedFile,
   onFileSelect,
   refreshKey,
+  onRestore,
 }: PreviewPanelProps) {
   return (
     <div className="flex flex-col h-full border-l border-border/60">
@@ -78,7 +80,7 @@ export function PreviewPanel({
 
         <TabsContent value="history" className="flex-1 min-h-0 m-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-auto">
-            <CommitHistory repoSlug={repoSlug} refreshKey={refreshKey} />
+            <CommitHistory repoSlug={repoSlug} refreshKey={refreshKey} onRestore={onRestore} />
           </div>
           <CloneSnippet gitUrl={gitUrl} />
         </TabsContent>
