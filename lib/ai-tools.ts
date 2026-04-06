@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import type { CoregitClient } from "@strayl/coregit";
+import type { CoregitClient } from "@coregit/sdk";
 
 export function createTools(coregit: CoregitClient, repoSlug: string) {
   return {

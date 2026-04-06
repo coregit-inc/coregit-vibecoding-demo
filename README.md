@@ -45,7 +45,7 @@ This makes Coregit ideal for AI agents that generate entire projects in one shot
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | AI | Vercel AI SDK v6 + Claude Haiku 4.5 |
-| Git Backend | [Coregit API](https://coregit.dev) via `@strayl/coregit` SDK |
+| Git Backend | [Coregit API](https://coregit.dev) via `@coregit/sdk` SDK |
 | Preview | [WebContainer](https://webcontainers.io) (StackBlitz) |
 | UI | shadcn/ui (new-york) + Tailwind v4 |
 | Markdown | Streamdown + @streamdown/code |

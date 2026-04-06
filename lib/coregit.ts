@@ -1,4 +1,4 @@
-import { CoregitClient } from "@strayl/coregit";
+import { CoregitClient } from "@coregit/sdk";
 
 let client: CoregitClient | null = null;
 
