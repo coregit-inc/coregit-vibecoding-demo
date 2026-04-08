@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import type { UIMessage } from "ai";
 import { useTheme } from "next-themes";
 import { Moon, Sun, GitBranch, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,26 @@ interface ChatViewProps {
   onFilesChanged?: (files: string[]) => void;
 }
 
+function loadMessages(repoSlug: string | null): UIMessage[] {
+  if (!repoSlug) return [];
+  try {
+    const stored = sessionStorage.getItem(`chat-${repoSlug}`);
+    if (!stored) return [];
+    return JSON.parse(stored) as UIMessage[];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(repoSlug: string | null, messages: UIMessage[]) {
+  if (!repoSlug || messages.length === 0) return;
+  try {
+    sessionStorage.setItem(`chat-${repoSlug}`, JSON.stringify(messages));
+  } catch {
+    // sessionStorage full or unavailable
+  }
+}
+
 export function ChatView({
   repoSlug,
   ensureRepo,
@@ -31,12 +52,16 @@ export function ChatView({
   onSwitchBranch,
   onFilesChanged,
 }: ChatViewProps) {
+  const initialMessages = useMemo(() => loadMessages(repoSlug), [repoSlug]);
+
   const {
     messages,
     sendMessage,
     status,
     stop,
   } = useChat({
+    id: repoSlug ? `chat-${repoSlug}` : undefined,
+    messages: initialMessages.length > 0 ? initialMessages : undefined,
     onFinish({ message }) {
       // Extract committed files from tool results
       const changedFiles: string[] = [];
@@ -56,6 +81,11 @@ export function ChatView({
       }
     },
   });
+
+  // Persist messages to sessionStorage
+  useEffect(() => {
+    saveMessages(repoSlug, messages);
+  }, [repoSlug, messages]);
 
   const { theme, setTheme } = useTheme();
   const isStreaming = status === "streaming" || status === "submitted";
