@@ -8,13 +8,21 @@ import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useRepo } from "@/hooks/use-repo";
 import { useFileTree } from "@/hooks/use-file-tree";
 import { useWebContainer } from "@/hooks/use-webcontainer";
+import { useBranches } from "@/hooks/use-branches";
 
 const MIN_CHAT_WIDTH = 360;
 const MAX_CHAT_WIDTH_RATIO = 0.7;
 
 export function AppShell() {
   const { repoSlug, gitUrl, ensureRepo } = useRepo();
-  const { items: fileTree, isLoading: isFileTreeLoading, refresh: refreshFileTree } = useFileTree(repoSlug);
+  const {
+    branches,
+    activeBranch,
+    fetchBranches,
+    createBranch,
+    switchBranch,
+  } = useBranches(repoSlug);
+  const { items: fileTree, isLoading: isFileTreeLoading, refresh: refreshFileTree } = useFileTree(repoSlug, activeBranch);
   const { status: wcStatus, previewUrl, logs, syncAndRun } = useWebContainer();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -25,9 +33,18 @@ export function AppShell() {
   useEffect(() => {
     if (repoSlug && !hasSynced.current && fileTree.length > 0) {
       hasSynced.current = true;
-      syncAndRun(repoSlug);
+      syncAndRun(repoSlug, undefined, activeBranch);
     }
   }, [repoSlug, fileTree, syncAndRun]);
+
+  // Re-sync when branch changes
+  const prevBranch = useRef(activeBranch);
+  useEffect(() => {
+    if (repoSlug && prevBranch.current !== activeBranch && hasSynced.current) {
+      prevBranch.current = activeBranch;
+      syncAndRun(repoSlug, undefined, activeBranch);
+    }
+  }, [repoSlug, activeBranch, syncAndRun]);
 
   // Initialize chat width to 50% on mount
   useEffect(() => {
@@ -46,10 +63,11 @@ export function AppShell() {
     async (files: string[]) => {
       if (!repoSlug) return;
       refreshFileTree();
+      fetchBranches();
       setRefreshKey((k) => k + 1);
-      syncAndRun(repoSlug, files);
+      syncAndRun(repoSlug, files, activeBranch);
     },
-    [repoSlug, refreshFileTree, syncAndRun]
+    [repoSlug, refreshFileTree, fetchBranches, syncAndRun]
   );
 
   const handleRestore = useCallback(
@@ -67,9 +85,21 @@ export function AppShell() {
       // Full re-sync: refresh file tree and re-mount all files in WebContainer
       refreshFileTree();
       setRefreshKey((k) => k + 1);
-      syncAndRun(repoSlug);
+      syncAndRun(repoSlug, undefined, activeBranch);
     },
     [repoSlug, refreshFileTree, syncAndRun]
+  );
+
+  const handleCreateBranch = useCallback(
+    async (fromSha: string) => {
+      const name = prompt("Branch name:");
+      if (!name) return;
+      const ok = await createBranch(name, fromSha);
+      if (ok) {
+        switchBranch(name);
+      }
+    },
+    [createBranch, switchBranch]
   );
 
   return (
@@ -82,6 +112,9 @@ export function AppShell() {
         <ChatView
           repoSlug={repoSlug}
           ensureRepo={ensureRepo}
+          activeBranch={activeBranch}
+          branches={branches}
+          onSwitchBranch={switchBranch}
           onFilesChanged={handleFilesChanged}
         />
         <ResizeHandle side="right" onResize={handleResize} />
@@ -100,7 +133,9 @@ export function AppShell() {
             selectedFile={selectedFile}
             onFileSelect={setSelectedFile}
             refreshKey={refreshKey}
+            activeBranch={activeBranch}
             onRestore={handleRestore}
+            onCreateBranch={handleCreateBranch}
           />
         </div>
         {logs.length > 0 && <TerminalOutput logs={logs} />}

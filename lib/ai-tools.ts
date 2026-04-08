@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import type { CoregitClient } from "@coregit/sdk";
 
-export function createTools(coregit: CoregitClient, repoSlug: string) {
+export function createTools(coregit: CoregitClient, repoSlug: string, branch: string = "main") {
   return {
     commitFiles: tool({
       description:
@@ -26,7 +26,7 @@ export function createTools(coregit: CoregitClient, repoSlug: string) {
       }),
       execute: async ({ message, files }) => {
         const result = await coregit.commits.create(repoSlug, {
-          branch: "main",
+          branch: branch,
           message,
           author: { name: "AI Assistant", email: "ai@coregit.dev" },
           changes: files.map((f) => ({
@@ -54,7 +54,7 @@ export function createTools(coregit: CoregitClient, repoSlug: string) {
       }),
       execute: async ({ message, paths }) => {
         const result = await coregit.commits.create(repoSlug, {
-          branch: "main",
+          branch: branch,
           message,
           author: { name: "AI Assistant", email: "ai@coregit.dev" },
           changes: paths.map((p) => ({ path: p, action: "delete" as const })),
@@ -77,7 +77,7 @@ export function createTools(coregit: CoregitClient, repoSlug: string) {
         path: z.string().describe("File path to read"),
       }),
       execute: async ({ path }) => {
-        const result = await coregit.files.blob(repoSlug, "main", path);
+        const result = await coregit.files.blob(repoSlug, branch, path);
         if (result.error) {
           return { exists: false as const, error: result.error.message };
         }
@@ -101,7 +101,7 @@ export function createTools(coregit: CoregitClient, repoSlug: string) {
       execute: async ({ path }) => {
         const result = await coregit.files.tree(
           repoSlug,
-          "main",
+          branch,
           path || undefined
         );
         if (result.error) {

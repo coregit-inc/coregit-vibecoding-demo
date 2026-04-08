@@ -3,15 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug");
+  const base = req.nextUrl.searchParams.get("base");
+  const head = req.nextUrl.searchParams.get("head");
 
-  if (!slug) {
-    return NextResponse.json({ error: "slug is required" }, { status: 400 });
+  if (!slug || !base || !head) {
+    return NextResponse.json(
+      { error: "slug, base, and head are required" },
+      { status: 400 }
+    );
   }
 
-  const ref = req.nextUrl.searchParams.get("ref") || undefined;
-
   const coregit = getCoregitClient();
-  const result = await coregit.commits.list(slug, { ref, limit: 50 });
+  const result = await coregit.diff.compare(slug, base, head, { patch: true });
 
   if (result.error) {
     return NextResponse.json(

@@ -5,7 +5,8 @@ import type { FileSystemTree } from "@webcontainer/api";
  */
 export async function fetchFilesAsTree(
   repoSlug: string,
-  filePaths: string[]
+  filePaths: string[],
+  ref: string = "main"
 ): Promise<FileSystemTree> {
   const tree: FileSystemTree = {};
 
@@ -13,7 +14,7 @@ export async function fetchFilesAsTree(
     filePaths.map(async (path) => {
       const params = new URLSearchParams({
         slug: repoSlug,
-        ref: "main",
+        ref,
         path,
       });
       const res = await fetch(`/api/files/blob?${params}`);
@@ -53,9 +54,10 @@ export async function fetchFilesAsTree(
  */
 export async function collectAllFilePaths(
   repoSlug: string,
-  basePath?: string
+  basePath?: string,
+  ref: string = "main"
 ): Promise<string[]> {
-  const params = new URLSearchParams({ slug: repoSlug, ref: "main" });
+  const params = new URLSearchParams({ slug: repoSlug, ref });
   if (basePath) params.set("path", basePath);
 
   const res = await fetch(`/api/files/tree?${params}`);
@@ -68,7 +70,7 @@ export async function collectAllFilePaths(
     if (item.type === "file") {
       paths.push(item.path);
     } else if (item.type === "folder") {
-      const subPaths = await collectAllFilePaths(repoSlug, item.path);
+      const subPaths = await collectAllFilePaths(repoSlug, item.path, ref);
       paths.push(...subPaths);
     }
   }

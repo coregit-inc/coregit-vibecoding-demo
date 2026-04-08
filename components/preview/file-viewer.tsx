@@ -78,6 +78,7 @@ const coregitLight = createTheme({
 interface FileViewerProps {
   repoSlug: string | null;
   filePath: string | null;
+  activeBranch?: string;
 }
 
 function getLanguageExtension(path: string) {
@@ -100,7 +101,7 @@ function getLanguageExtension(path: string) {
   }
 }
 
-export function FileViewer({ repoSlug, filePath }: FileViewerProps) {
+export function FileViewer({ repoSlug, filePath, activeBranch = "main" }: FileViewerProps) {
   const [content, setContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { resolvedTheme } = useTheme();
@@ -114,7 +115,7 @@ export function FileViewer({ repoSlug, filePath }: FileViewerProps) {
     setIsLoading(true);
     const params = new URLSearchParams({
       slug: repoSlug,
-      ref: "main",
+      ref: activeBranch,
       path: filePath,
     });
     fetch(`/api/files/blob?${params}`)
@@ -128,7 +129,7 @@ export function FileViewer({ repoSlug, filePath }: FileViewerProps) {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [repoSlug, filePath]);
+  }, [repoSlug, filePath, activeBranch]);
 
   if (!filePath) {
     return (

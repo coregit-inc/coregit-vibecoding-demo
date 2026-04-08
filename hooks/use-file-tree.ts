@@ -10,7 +10,7 @@ export interface TreeEntry {
   mode: string;
 }
 
-export function useFileTree(repoSlug: string | null) {
+export function useFileTree(repoSlug: string | null, activeBranch: string = "main") {
   const [items, setItems] = useState<TreeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,7 +19,7 @@ export function useFileTree(repoSlug: string | null) {
       if (!repoSlug) return;
       setIsLoading(true);
       try {
-        const params = new URLSearchParams({ slug: repoSlug, ref: "main" });
+        const params = new URLSearchParams({ slug: repoSlug, ref: activeBranch });
         if (path) params.set("path", path);
         const res = await fetch(`/api/files/tree?${params}`);
         if (res.ok) {
@@ -30,10 +30,10 @@ export function useFileTree(repoSlug: string | null) {
         setIsLoading(false);
       }
     },
-    [repoSlug]
+    [repoSlug, activeBranch]
   );
 
-  // Auto-load when repoSlug becomes available
+  // Auto-load when repoSlug or branch changes
   useEffect(() => {
     if (repoSlug) refresh();
   }, [repoSlug, refresh]);

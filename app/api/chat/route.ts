@@ -37,14 +37,15 @@ const SYSTEM_PROMPT = `You are an AI code generator that builds web applications
 After committing files, briefly explain what you built and how the user can iterate on it.`;
 
 export async function POST(req: Request) {
-  const { messages, repoSlug } = await req.json();
+  const { messages, repoSlug, activeBranch } = await req.json();
 
   if (!repoSlug) {
     return new Response("repoSlug is required", { status: 400 });
   }
 
+  const branch = activeBranch || "main";
   const coregit = getCoregitClient();
-  const tools = createTools(coregit, repoSlug);
+  const tools = createTools(coregit, repoSlug, branch);
 
   const result = streamText({
     model: anthropic("claude-haiku-4-5-20251001"),

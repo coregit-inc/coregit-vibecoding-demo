@@ -52,7 +52,7 @@ export function useWebContainer() {
   }, []);
 
   const syncAndRun = useCallback(
-    async (repoSlug: string, changedFiles?: string[]) => {
+    async (repoSlug: string, changedFiles?: string[], ref: string = "main") => {
       const wc = await ensureBoot();
       if (!wc) return;
 
@@ -60,7 +60,7 @@ export function useWebContainer() {
 
       let filePaths: string[];
       if (!hasRunBefore.current || !changedFiles) {
-        filePaths = await collectAllFilePaths(repoSlug);
+        filePaths = await collectAllFilePaths(repoSlug, undefined, ref);
         hasRunBefore.current = true;
       } else {
         filePaths = changedFiles;
@@ -68,7 +68,7 @@ export function useWebContainer() {
 
       if (filePaths.length === 0) return;
 
-      const tree = await fetchFilesAsTree(repoSlug, filePaths);
+      const tree = await fetchFilesAsTree(repoSlug, filePaths, ref);
       await wc.mount(tree);
 
       const needsInstall =

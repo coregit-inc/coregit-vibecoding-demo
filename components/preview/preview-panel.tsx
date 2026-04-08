@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Code2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +8,7 @@ import { PreviewIframe } from "./preview-iframe";
 import { FileExplorer } from "./file-explorer";
 import { FileViewer } from "./file-viewer";
 import { CommitHistory } from "./commit-history";
+import { DiffViewer } from "./diff-viewer";
 import { CloneSnippet } from "./clone-snippet";
 import type { TreeEntry } from "@/hooks/use-file-tree";
 
@@ -20,7 +22,9 @@ interface PreviewPanelProps {
   selectedFile: string | null;
   onFileSelect: (path: string) => void;
   refreshKey?: number;
+  activeBranch?: string;
   onRestore?: (sha: string) => Promise<void>;
+  onCreateBranch?: (fromSha: string) => void;
 }
 
 export function PreviewPanel({
@@ -33,11 +37,26 @@ export function PreviewPanel({
   selectedFile,
   onFileSelect,
   refreshKey,
+  activeBranch = "main",
   onRestore,
+  onCreateBranch,
 }: PreviewPanelProps) {
+  const [activeTab, setActiveTab] = useState("preview");
+  const [diffRange, setDiffRange] = useState<{ base: string; head: string } | null>(null);
+
+  const handleViewDiff = (baseSha: string, headSha: string) => {
+    setDiffRange({ base: baseSha, head: headSha });
+    setActiveTab("diff");
+  };
+
+  const handleCloseDiff = () => {
+    setDiffRange(null);
+    setActiveTab("history");
+  };
+
   return (
     <div className="flex flex-col h-full border-l border-border/60">
-      <Tabs defaultValue="preview" className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         <TabsList className="shrink-0 w-full justify-start rounded-none border-b border-border/60 bg-transparent px-2 h-10">
           <TabsTrigger value="preview" className="text-xs">
             Preview
@@ -48,6 +67,11 @@ export function PreviewPanel({
           <TabsTrigger value="history" className="text-xs">
             History
           </TabsTrigger>
+          {diffRange && (
+            <TabsTrigger value="diff" className="text-xs">
+              Diff
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="preview" className="flex-1 min-h-0 m-0">
@@ -72,7 +96,7 @@ export function PreviewPanel({
                 />
               </ScrollArea>
               <div className="flex-1 min-w-0">
-                <FileViewer repoSlug={repoSlug} filePath={selectedFile} />
+                <FileViewer repoSlug={repoSlug} filePath={selectedFile} activeBranch={activeBranch} />
               </div>
             </div>
           )}
@@ -80,10 +104,28 @@ export function PreviewPanel({
 
         <TabsContent value="history" className="flex-1 min-h-0 m-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-auto">
-            <CommitHistory repoSlug={repoSlug} refreshKey={refreshKey} onRestore={onRestore} />
+            <CommitHistory
+              repoSlug={repoSlug}
+              activeBranch={activeBranch}
+              refreshKey={refreshKey}
+              onRestore={onRestore}
+              onViewDiff={handleViewDiff}
+              onCreateBranch={onCreateBranch}
+            />
           </div>
           <CloneSnippet gitUrl={gitUrl} />
         </TabsContent>
+
+        {diffRange && (
+          <TabsContent value="diff" className="flex-1 min-h-0 m-0">
+            <DiffViewer
+              repoSlug={repoSlug}
+              baseSha={diffRange.base}
+              headSha={diffRange.head}
+              onClose={handleCloseDiff}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

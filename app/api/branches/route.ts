@@ -1,0 +1,48 @@
+import { getCoregitClient } from "@/lib/coregit";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(req: NextRequest) {
+  const slug = req.nextUrl.searchParams.get("slug");
+
+  if (!slug) {
+    return NextResponse.json({ error: "slug is required" }, { status: 400 });
+  }
+
+  const coregit = getCoregitClient();
+  const result = await coregit.branches.list(slug);
+
+  if (result.error) {
+    return NextResponse.json(
+      { error: result.error.message },
+      { status: result.status }
+    );
+  }
+
+  return NextResponse.json(result.data);
+}
+
+export async function POST(req: Request) {
+  const { slug, name, from_sha } = await req.json();
+
+  if (!slug || !name) {
+    return NextResponse.json(
+      { error: "slug and name are required" },
+      { status: 400 }
+    );
+  }
+
+  const coregit = getCoregitClient();
+  const result = await coregit.branches.create(slug, {
+    name,
+    from_sha: from_sha || undefined,
+  });
+
+  if (result.error) {
+    return NextResponse.json(
+      { error: result.error.message },
+      { status: result.status }
+    );
+  }
+
+  return NextResponse.json(result.data);
+}

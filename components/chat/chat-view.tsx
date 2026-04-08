@@ -3,19 +3,34 @@
 import { useChat } from "@ai-sdk/react";
 import { useCallback } from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, GitBranch, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChatMessages } from "./chat-messages";
 import { PromptInput } from "./prompt-input";
 
+interface Branch {
+  name: string;
+  sha: string;
+}
+
 interface ChatViewProps {
   repoSlug: string | null;
   ensureRepo: () => Promise<string>;
+  activeBranch?: string;
+  branches?: Branch[];
+  onSwitchBranch?: (name: string) => void;
   onFilesChanged?: (files: string[]) => void;
 }
 
-export function ChatView({ repoSlug, ensureRepo, onFilesChanged }: ChatViewProps) {
+export function ChatView({
+  repoSlug,
+  ensureRepo,
+  activeBranch = "main",
+  branches = [],
+  onSwitchBranch,
+  onFilesChanged,
+}: ChatViewProps) {
   const {
     messages,
     sendMessage,
@@ -50,10 +65,10 @@ export function ChatView({ repoSlug, ensureRepo, onFilesChanged }: ChatViewProps
       const slug = await ensureRepo();
       sendMessage(
         { text: prompt },
-        { body: { repoSlug: slug } }
+        { body: { repoSlug: slug, activeBranch } }
       );
     },
-    [ensureRepo, sendMessage]
+    [ensureRepo, sendMessage, activeBranch]
   );
 
   return (
@@ -82,6 +97,26 @@ export function ChatView({ repoSlug, ensureRepo, onFilesChanged }: ChatViewProps
             </Badge>
           )}
         </div>
+        {/* Branch selector */}
+        {branches.length > 0 && onSwitchBranch && (
+          <div className="absolute right-4">
+            <div className="relative">
+              <select
+                value={activeBranch}
+                onChange={(e) => onSwitchBranch(e.target.value)}
+                className="appearance-none flex items-center gap-1.5 pl-7 pr-6 py-1 rounded-md border border-input bg-background text-xs font-mono cursor-pointer hover:bg-muted/50 transition-colors"
+              >
+                {branches.map((b) => (
+                  <option key={b.name} value={b.name}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <GitBranch className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Messages */}
