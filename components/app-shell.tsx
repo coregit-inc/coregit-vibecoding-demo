@@ -171,10 +171,6 @@ export function AppShell() {
             previewStatus={wcStatus}
             repoSlug={repoSlug}
             gitUrl={gitUrl}
-            fileTree={fileTree}
-            isFileTreeLoading={isFileTreeLoading}
-            selectedFile={selectedFile}
-            onFileSelect={setSelectedFile}
             refreshKey={refreshKey}
             activeBranch={activeBranch}
             onRestore={handleRestore}

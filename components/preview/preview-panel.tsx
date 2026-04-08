@@ -2,33 +2,22 @@
 
 import { useState } from "react";
 import {
-  Code2,
   Undo2,
   Redo2,
   Share2,
   ExternalLink,
-  Globe,
-  ChevronDown,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PreviewIframe } from "./preview-iframe";
-import { FileExplorer } from "./file-explorer";
-import { FileViewer } from "./file-viewer";
 import { CommitHistory } from "./commit-history";
 import { DiffViewer } from "./diff-viewer";
 import { CloneSnippet } from "./clone-snippet";
-import type { TreeEntry } from "@/hooks/use-file-tree";
 
 interface PreviewPanelProps {
   previewUrl: string | null;
   previewStatus: string;
   repoSlug: string | null;
   gitUrl: string | null;
-  fileTree: TreeEntry[];
-  isFileTreeLoading: boolean;
-  selectedFile: string | null;
-  onFileSelect: (path: string) => void;
   refreshKey?: number;
   activeBranch?: string;
   onRestore?: (sha: string) => Promise<void>;
@@ -40,10 +29,6 @@ export function PreviewPanel({
   previewStatus,
   repoSlug,
   gitUrl,
-  fileTree,
-  isFileTreeLoading,
-  selectedFile,
-  onFileSelect,
   refreshKey,
   activeBranch = "main",
   onRestore,
@@ -81,12 +66,6 @@ export function PreviewPanel({
               className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
             >
               Preview
-            </TabsTrigger>
-            <TabsTrigger
-              value="code"
-              className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
-            >
-              Code
             </TabsTrigger>
             <TabsTrigger
               value="history"
@@ -150,34 +129,6 @@ export function PreviewPanel({
 
         <TabsContent value="preview" className="flex-1 min-h-0 m-0">
           <PreviewIframe url={previewUrl} status={previewStatus} />
-        </TabsContent>
-
-        <TabsContent value="code" className="flex-1 min-h-0 m-0">
-          {!isFileTreeLoading && fileTree.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
-              <Code2 className="size-8 opacity-40" />
-              <p className="text-sm">No files yet</p>
-              <p className="text-xs">Send a message to generate code</p>
-            </div>
-          ) : (
-            <div className="flex h-full">
-              <ScrollArea className="w-48 border-r border-border/60 shrink-0">
-                <FileExplorer
-                  items={fileTree}
-                  isLoading={isFileTreeLoading}
-                  onFileSelect={onFileSelect}
-                  selectedFile={selectedFile}
-                />
-              </ScrollArea>
-              <div className="flex-1 min-w-0">
-                <FileViewer
-                  repoSlug={repoSlug}
-                  filePath={selectedFile}
-                  activeBranch={activeBranch}
-                />
-              </div>
-            </div>
-          )}
         </TabsContent>
 
         <TabsContent
