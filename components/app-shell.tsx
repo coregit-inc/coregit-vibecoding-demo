@@ -155,6 +155,10 @@ export function AppShell() {
           onFilesChanged={handleFilesChanged}
           onPreviewSuggestion={handlePreviewSuggestion}
           onAcceptSuggestion={handleAcceptSuggestion}
+          fileTree={fileTree}
+          isFileTreeLoading={isFileTreeLoading}
+          selectedFile={selectedFile}
+          onFileSelect={setSelectedFile}
         />
         <ResizeHandle side="right" onResize={handleResize} />
       </div>

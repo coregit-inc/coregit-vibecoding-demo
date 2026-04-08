@@ -1,14 +1,19 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UIMessage } from "ai";
 import { useTheme } from "next-themes";
 import { Moon, Sun, GitBranch, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { ChatMessages } from "./chat-messages";
 import { PromptInput } from "./prompt-input";
+import { FileExplorer } from "@/components/preview/file-explorer";
+import { FileViewer } from "@/components/preview/file-viewer";
+import type { TreeEntry } from "@/hooks/use-file-tree";
 
 interface Branch {
   name: string;
@@ -24,6 +29,10 @@ interface ChatViewProps {
   onFilesChanged?: (files: string[]) => void;
   onPreviewSuggestion?: (branch: string) => void;
   onAcceptSuggestion?: (branch: string) => void;
+  fileTree?: TreeEntry[];
+  isFileTreeLoading?: boolean;
+  selectedFile?: string | null;
+  onFileSelect?: (path: string) => void;
 }
 
 function loadMessages(repoSlug: string | null): UIMessage[] {
@@ -55,8 +64,13 @@ export function ChatView({
   onFilesChanged,
   onPreviewSuggestion,
   onAcceptSuggestion,
+  fileTree = [],
+  isFileTreeLoading = false,
+  selectedFile = null,
+  onFileSelect,
 }: ChatViewProps) {
   const initialMessages = useMemo(() => loadMessages(repoSlug), [repoSlug]);
+  const [activePanel, setActivePanel] = useState<"chat" | "code">("chat");
 
   const {
     messages,
@@ -108,8 +122,50 @@ export function ChatView({
   return (
     <div className="flex flex-col overflow-hidden min-w-0 h-full">
       {/* Header */}
-      <header className="flex h-14 items-center justify-center px-4 relative shrink-0">
-        <div className="absolute left-4">
+      <header className="flex h-14 items-center px-4 shrink-0 border-b border-border/40">
+        {/* Brand */}
+        <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+          <span className="font-display text-lg font-medium">Coregit</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="font-semibold truncate text-sm">
+            {repoSlug || "demo"}
+          </span>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Pill toggle */}
+        <div className="flex items-center bg-muted/60 rounded-full p-0.5 shrink-0">
+          <button
+            onClick={() => setActivePanel("chat")}
+            className={cn(
+              "px-4 py-1 rounded-full text-xs font-medium transition-all",
+              activePanel === "chat"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Chat
+          </button>
+          <button
+            onClick={() => setActivePanel("code")}
+            className={cn(
+              "px-4 py-1 rounded-full text-xs font-medium transition-all",
+              activePanel === "code"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Code
+          </button>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right side: theme toggle + branch selector */}
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -118,22 +174,7 @@ export function ChatView({
             <Sun className="size-4 text-foreground rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute size-4 text-foreground rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
           </Button>
-        </div>
-        <div className="flex items-center gap-1.5 max-w-[calc(100%-4rem)] min-w-0">
-          <span className="font-display text-lg font-medium">Coregit</span>
-          <span className="text-muted-foreground">/</span>
-          <span className="font-semibold truncate">
-            {repoSlug || "demo"}
-          </span>
-          {repoSlug && (
-            <Badge variant="outline" className="ml-1 shrink-0 text-xs">
-              public
-            </Badge>
-          )}
-        </div>
-        {/* Branch selector */}
-        {branches.length > 0 && onSwitchBranch && (
-          <div className="absolute right-4">
+          {branches.length > 0 && onSwitchBranch && (
             <div className="relative">
               <select
                 value={activeBranch}
@@ -149,31 +190,55 @@ export function ChatView({
               <GitBranch className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
               <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <ChatMessages
-          messages={messages}
-          isStreaming={isStreaming}
-          activeBranch={activeBranch}
-          onPreviewSuggestion={onPreviewSuggestion}
-          onAcceptSuggestion={onAcceptSuggestion}
-          className="h-full"
-        />
-      </div>
+      {/* Panel content */}
+      {activePanel === "chat" ? (
+        <>
+          {/* Messages */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ChatMessages
+              messages={messages}
+              isStreaming={isStreaming}
+              activeBranch={activeBranch}
+              onPreviewSuggestion={onPreviewSuggestion}
+              onAcceptSuggestion={onAcceptSuggestion}
+              className="h-full"
+            />
+          </div>
 
-      {/* Input */}
-      <div className="shrink-0 px-4 pb-4">
-        <PromptInput
-          onSubmit={handleSend}
-          disabled={isStreaming}
-          isStreaming={isStreaming}
-          onStop={stop}
-        />
-      </div>
+          {/* Input */}
+          <div className="shrink-0 px-4 pb-4">
+            <PromptInput
+              onSubmit={handleSend}
+              disabled={isStreaming}
+              isStreaming={isStreaming}
+              onStop={stop}
+            />
+          </div>
+        </>
+      ) : (
+        /* Code panel — inline file browser */
+        <div className="flex flex-1 min-h-0">
+          <ScrollArea className="w-48 border-r border-border/60 shrink-0">
+            <FileExplorer
+              items={fileTree}
+              isLoading={isFileTreeLoading}
+              onFileSelect={onFileSelect || (() => {})}
+              selectedFile={selectedFile}
+            />
+          </ScrollArea>
+          <div className="flex-1 min-w-0">
+            <FileViewer
+              repoSlug={repoSlug}
+              filePath={selectedFile}
+              activeBranch={activeBranch}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

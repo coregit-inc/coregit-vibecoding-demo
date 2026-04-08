@@ -1,13 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUp, Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
+import { useState, useRef, useEffect } from "react";
+import { ArrowUp, Square, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PromptInputProps {
   onSubmit: (prompt: string) => void;
@@ -22,10 +17,19 @@ export function PromptInput({
   disabled = false,
   isStreaming = false,
   onStop,
-  placeholder = "Ask anything...",
+  placeholder = "Ask Coregit...",
 }: PromptInputProps) {
   const [prompt, setPrompt] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasContent = prompt.trim().length > 0;
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+  }, [prompt]);
 
   const handleSubmit = () => {
     if (hasContent && !disabled) {
@@ -43,33 +47,53 @@ export function PromptInput({
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <InputGroup className="relative z-10 shadow-none before:shadow-none has-[input:focus-visible,textarea:focus-visible]:ring-0 has-[input:focus-visible,textarea:focus-visible]:border-input has-[input:focus-visible,textarea:focus-visible]:before:shadow-[0_1px_--theme(--color-black/6%)] dark:has-[input:focus-visible,textarea:focus-visible]:before:shadow-[0_-1px_--theme(--color-white/6%)] not-dark:bg-muted/60">
-        <InputGroupTextarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? "Waiting..." : placeholder}
-          disabled={disabled}
-        />
-        <InputGroupAddon align="block-end">
-          <div className="ml-auto">
-            <Button
-              aria-label={isStreaming ? "Stop" : "Send"}
-              className="rounded-full"
-              size="icon-sm"
-              variant="default"
-              onClick={isStreaming ? onStop : handleSubmit}
-              disabled={isStreaming ? false : !hasContent || disabled}
+      <div className="rounded-2xl border border-border/60 bg-background shadow-sm overflow-hidden">
+        {/* Textarea */}
+        <div className="px-4 pt-3 pb-1">
+          <textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isStreaming ? "Waiting for response..." : placeholder}
+            disabled={disabled}
+            rows={1}
+            className="w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50"
+          />
+        </div>
+
+        {/* Bottom bar with actions */}
+        <div className="flex items-center justify-between px-3 pb-2.5 pt-0.5">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+              title="Attach"
             >
-              {isStreaming ? (
-                <Square className="size-3 fill-current" />
-              ) : (
-                <ArrowUp />
-              )}
-            </Button>
+              <Plus className="size-4" />
+            </button>
           </div>
-        </InputGroupAddon>
-      </InputGroup>
+          <button
+            aria-label={isStreaming ? "Stop" : "Send"}
+            onClick={isStreaming ? onStop : handleSubmit}
+            disabled={isStreaming ? false : !hasContent || disabled}
+            className={cn(
+              "size-8 rounded-full flex items-center justify-center transition-all",
+              isStreaming
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                : hasContent && !disabled
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+            )}
+          >
+            {isStreaming ? (
+              <Square className="size-3 fill-current" />
+            ) : (
+              <ArrowUp className="size-4" />
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

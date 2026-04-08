@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Code2 } from "lucide-react";
+import {
+  Code2,
+  Undo2,
+  Redo2,
+  Share2,
+  ExternalLink,
+  Globe,
+  ChevronDown,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PreviewIframe } from "./preview-iframe";
@@ -42,7 +50,10 @@ export function PreviewPanel({
   onCreateBranch,
 }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState("preview");
-  const [diffRange, setDiffRange] = useState<{ base: string; head: string } | null>(null);
+  const [diffRange, setDiffRange] = useState<{
+    base: string;
+    head: string;
+  } | null>(null);
 
   const handleViewDiff = (baseSha: string, headSha: string) => {
     setDiffRange({ base: baseSha, head: headSha });
@@ -56,23 +67,86 @@ export function PreviewPanel({
 
   return (
     <div className="flex flex-col h-full border-l border-border/60">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-        <TabsList className="shrink-0 w-full justify-start rounded-none border-b border-border/60 bg-transparent px-2 h-10">
-          <TabsTrigger value="preview" className="text-xs">
-            Preview
-          </TabsTrigger>
-          <TabsTrigger value="code" className="text-xs">
-            Code
-          </TabsTrigger>
-          <TabsTrigger value="history" className="text-xs">
-            History
-          </TabsTrigger>
-          {diffRange && (
-            <TabsTrigger value="diff" className="text-xs">
-              Diff
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex flex-col h-full"
+      >
+        {/* Preview toolbar — Webild-style */}
+        <div className="shrink-0 flex items-center h-14 px-4 border-b border-border/40 gap-3">
+          {/* Left: Tab pills */}
+          <TabsList className="bg-muted/60 rounded-full p-0.5 h-auto">
+            <TabsTrigger
+              value="preview"
+              className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+            >
+              Preview
             </TabsTrigger>
-          )}
-        </TabsList>
+            <TabsTrigger
+              value="code"
+              className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+            >
+              Code
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+            >
+              History
+            </TabsTrigger>
+            {diffRange && (
+              <TabsTrigger
+                value="diff"
+                className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+              >
+                Diff
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* Center: page label + undo/redo */}
+          <div className="flex-1" />
+          <div className="flex items-center gap-1.5">
+            <button
+              className="size-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+              title="Undo (restore previous)"
+            >
+              <Undo2 className="size-3.5" />
+            </button>
+            <button
+              className="size-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+              title="Redo"
+            >
+              <Redo2 className="size-3.5" />
+            </button>
+          </div>
+          <div className="flex-1" />
+
+          {/* Right: Share + Open */}
+          <div className="flex items-center gap-1.5">
+            {gitUrl && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(gitUrl);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                title="Copy git URL"
+              >
+                <Share2 className="size-3.5" />
+                Share
+              </button>
+            )}
+            {previewUrl && (
+              <button
+                onClick={() => window.open(previewUrl, "_blank")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <ExternalLink className="size-3.5" />
+                Open
+              </button>
+            )}
+          </div>
+        </div>
 
         <TabsContent value="preview" className="flex-1 min-h-0 m-0">
           <PreviewIframe url={previewUrl} status={previewStatus} />
@@ -96,13 +170,20 @@ export function PreviewPanel({
                 />
               </ScrollArea>
               <div className="flex-1 min-w-0">
-                <FileViewer repoSlug={repoSlug} filePath={selectedFile} activeBranch={activeBranch} />
+                <FileViewer
+                  repoSlug={repoSlug}
+                  filePath={selectedFile}
+                  activeBranch={activeBranch}
+                />
               </div>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="history" className="flex-1 min-h-0 m-0 flex flex-col">
+        <TabsContent
+          value="history"
+          className="flex-1 min-h-0 m-0 flex flex-col"
+        >
           <div className="flex-1 min-h-0 overflow-auto">
             <CommitHistory
               repoSlug={repoSlug}

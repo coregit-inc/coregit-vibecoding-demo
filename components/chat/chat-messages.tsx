@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import type { UIMessage } from "ai";
 import {
   Conversation,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ToolBlock } from "./tool-block";
-import { SuggestionBlock } from "./suggestion-block";
+import { SuggestionGroup } from "./suggestion-block";
 
 interface ChatMessagesProps {
   messages: UIMessage[];
@@ -42,6 +43,64 @@ function getTextFromParts(parts: UIMessage["parts"]): string {
     .join("");
 }
 
+interface SuggestionData {
+  title: string;
+  description: string;
+  branch: string;
+  filesWritten: string[];
+}
+
+/** Group consecutive suggestion tool parts into batches */
+function groupParts(parts: UIMessage["parts"]) {
+  const groups: Array<
+    | { type: "suggestion-group"; suggestions: SuggestionData[]; key: string }
+    | { type: "part"; part: UIMessage["parts"][number]; index: number }
+  > = [];
+
+  let pendingSuggestions: SuggestionData[] = [];
+  let suggestionKey = "";
+
+  const flushSuggestions = () => {
+    if (pendingSuggestions.length > 0) {
+      groups.push({
+        type: "suggestion-group",
+        suggestions: [...pendingSuggestions],
+        key: suggestionKey,
+      });
+      pendingSuggestions = [];
+      suggestionKey = "";
+    }
+  };
+
+  parts.forEach((part, i) => {
+    if (isToolPart(part)) {
+      const toolName = part.type.replace("tool-", "");
+      const result =
+        part.state === "output-available"
+          ? (part.output as Record<string, unknown>)
+          : undefined;
+
+      if (toolName === "createSuggestion" && result?.suggestion) {
+        pendingSuggestions.push({
+          title: result.title as string,
+          description: result.description as string,
+          branch: result.branch as string,
+          filesWritten: (result.filesWritten as string[]) || [],
+        });
+        if (!suggestionKey) suggestionKey = part.toolCallId;
+        return;
+      }
+    }
+
+    // Non-suggestion part — flush any pending suggestions first
+    flushSuggestions();
+    groups.push({ type: "part", part, index: i });
+  });
+
+  flushSuggestions();
+  return groups;
+}
+
 export function ChatMessages({
   messages,
   isStreaming,
@@ -60,28 +119,27 @@ export function ChatMessages({
                 <p>{getTextFromParts(message.parts)}</p>
               ) : (
                 <>
-                  {message.parts.map((part, i) => {
+                  {groupParts(message.parts).map((group) => {
+                    if (group.type === "suggestion-group") {
+                      return (
+                        <SuggestionGroup
+                          key={group.key}
+                          suggestions={group.suggestions}
+                          activeBranch={activeBranch}
+                          onPreview={onPreviewSuggestion || (() => {})}
+                          onAccept={onAcceptSuggestion || (() => {})}
+                        />
+                      );
+                    }
+
+                    const { part, index: i } = group;
+
                     if (isToolPart(part)) {
                       const toolName = part.type.replace("tool-", "");
-                      const result = part.state === "output-available"
-                        ? (part.output as Record<string, unknown>)
-                        : undefined;
-
-                      // Render suggestion as SuggestionBlock
-                      if (toolName === "createSuggestion" && result?.suggestion) {
-                        return (
-                          <SuggestionBlock
-                            key={part.toolCallId}
-                            title={result.title as string}
-                            description={result.description as string}
-                            branch={result.branch as string}
-                            filesWritten={(result.filesWritten as string[]) || []}
-                            isActive={activeBranch === result.branch}
-                            onPreview={onPreviewSuggestion || (() => {})}
-                            onAccept={onAcceptSuggestion || (() => {})}
-                          />
-                        );
-                      }
+                      const result =
+                        part.state === "output-available"
+                          ? (part.output as Record<string, unknown>)
+                          : undefined;
 
                       return (
                         <ToolBlock
