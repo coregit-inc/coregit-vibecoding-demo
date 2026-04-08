@@ -89,6 +89,8 @@ function getToolIcon(toolName: string) {
       return <FileSearch className="size-3.5" />;
     case "listFiles":
       return <Folder className="size-3.5" />;
+    case "createSuggestion":
+      return <FilePlus className="size-3.5" />;
     default:
       return null;
   }
@@ -122,6 +124,10 @@ function getToolLabel(
       return result
         ? `Listed ${(args.path as string) || "root"}`
         : `Listing ${(args.path as string) || "root"}...`;
+    case "createSuggestion":
+      return result
+        ? `Created suggestion: ${args.title}`
+        : `Creating suggestion: ${args.title}...`;
     default:
       return toolName;
   }

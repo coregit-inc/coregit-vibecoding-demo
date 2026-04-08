@@ -13,6 +13,14 @@ const SYSTEM_PROMPT = `You are an AI code generator that builds web applications
 - Generate complete, runnable code — no placeholders, no TODOs, no "your code here"
 - When modifying existing code, read the file first with readFile, then commit the updated version
 
+## Suggestions (Branching)
+When the user asks for alternatives, options, different directions, or variations (e.g., "give me 3 hero designs", "suggest some layouts", "show me options"), use the createSuggestion tool:
+- Call createSuggestion once for each option (2-3 suggestions is ideal)
+- Each suggestion creates a real git branch — the user can preview it live and accept the one they like
+- Each suggestion MUST include ALL files needed to run (package.json, vite.config.ts, index.html, etc.) — it's a complete standalone version
+- Give each a clear, distinct name and description so the user can tell them apart
+- After creating all suggestions, briefly explain the differences between them
+
 ## Stack Defaults
 - React 19 with TypeScript
 - Vite as the bundler (port 5173)

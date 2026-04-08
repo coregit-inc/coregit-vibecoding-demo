@@ -13,10 +13,14 @@ import {
 } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ToolBlock } from "./tool-block";
+import { SuggestionBlock } from "./suggestion-block";
 
 interface ChatMessagesProps {
   messages: UIMessage[];
   isStreaming: boolean;
+  activeBranch?: string;
+  onPreviewSuggestion?: (branch: string) => void;
+  onAcceptSuggestion?: (branch: string) => void;
   className?: string;
 }
 
@@ -41,6 +45,9 @@ function getTextFromParts(parts: UIMessage["parts"]): string {
 export function ChatMessages({
   messages,
   isStreaming,
+  activeBranch,
+  onPreviewSuggestion,
+  onAcceptSuggestion,
   className,
 }: ChatMessagesProps) {
   return (
@@ -56,16 +63,32 @@ export function ChatMessages({
                   {message.parts.map((part, i) => {
                     if (isToolPart(part)) {
                       const toolName = part.type.replace("tool-", "");
+                      const result = part.state === "output-available"
+                        ? (part.output as Record<string, unknown>)
+                        : undefined;
+
+                      // Render suggestion as SuggestionBlock
+                      if (toolName === "createSuggestion" && result?.suggestion) {
+                        return (
+                          <SuggestionBlock
+                            key={part.toolCallId}
+                            title={result.title as string}
+                            description={result.description as string}
+                            branch={result.branch as string}
+                            filesWritten={(result.filesWritten as string[]) || []}
+                            isActive={activeBranch === result.branch}
+                            onPreview={onPreviewSuggestion || (() => {})}
+                            onAccept={onAcceptSuggestion || (() => {})}
+                          />
+                        );
+                      }
+
                       return (
                         <ToolBlock
                           key={part.toolCallId}
                           toolName={toolName}
                           args={(part.input ?? {}) as Record<string, unknown>}
-                          result={
-                            part.state === "output-available"
-                              ? (part.output as Record<string, unknown>)
-                              : undefined
-                          }
+                          result={result}
                           isLoading={
                             part.state !== "output-available" &&
                             part.state !== "error"

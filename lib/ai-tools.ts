@@ -117,5 +117,76 @@ export function createTools(coregit: CoregitClient, repoSlug: string, branch: st
         };
       },
     }),
+
+    createSuggestion: tool({
+      description:
+        "Create a suggestion as a separate git branch. Use this when the user asks for alternatives, options, or variations. Each suggestion gets its own branch so the user can preview the actual result before accepting. Call this tool once per suggestion — if the user wants 3 options, call it 3 times with different names.",
+      inputSchema: z.object({
+        name: z
+          .string()
+          .describe(
+            "Short kebab-case name for this suggestion (e.g., 'bold-hero', 'minimal-layout'). Will be prefixed with 'suggestion/'."
+          ),
+        title: z
+          .string()
+          .describe("Human-readable title (e.g., 'Bold & Modern')"),
+        description: z
+          .string()
+          .describe(
+            "One-line description of what this suggestion changes"
+          ),
+        files: z
+          .array(
+            z.object({
+              path: z.string().describe("File path relative to repo root"),
+              content: z.string().describe("Full file content"),
+            })
+          )
+          .describe("All files for this suggestion (complete, runnable)"),
+      }),
+      execute: async ({ name, title, description, files }) => {
+        const branchName = `suggestion/${name}`;
+
+        // Create branch from current branch HEAD
+        const branchResult = await coregit.branches.create(repoSlug, {
+          name: branchName,
+          from: branch,
+        });
+        if (branchResult.error) {
+          return {
+            success: false as const,
+            error: branchResult.error.message,
+          };
+        }
+
+        // Commit files to the suggestion branch
+        const commitResult = await coregit.commits.create(repoSlug, {
+          branch: branchName,
+          message: `suggestion: ${title}`,
+          author: { name: "AI Assistant", email: "ai@coregit.dev" },
+          changes: files.map((f) => ({
+            path: f.path,
+            content: f.content,
+            encoding: "utf-8" as const,
+          })),
+        });
+        if (commitResult.error) {
+          return {
+            success: false as const,
+            error: commitResult.error.message,
+          };
+        }
+
+        return {
+          success: true as const,
+          suggestion: true as const,
+          branch: branchName,
+          title,
+          description,
+          sha: commitResult.data!.sha,
+          filesWritten: files.map((f) => f.path),
+        };
+      },
+    }),
   };
 }

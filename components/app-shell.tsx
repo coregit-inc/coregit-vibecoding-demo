@@ -102,6 +102,43 @@ export function AppShell() {
     [createBranch, switchBranch]
   );
 
+  // Preview a suggestion branch — switch to it and sync
+  const handlePreviewSuggestion = useCallback(
+    (branch: string) => {
+      fetchBranches();
+      switchBranch(branch);
+    },
+    [fetchBranches, switchBranch]
+  );
+
+  // Accept a suggestion — merge it to main, switch back, cleanup
+  const handleAcceptSuggestion = useCallback(
+    async (suggestionBranch: string) => {
+      if (!repoSlug) return;
+      const res = await fetch("/api/branches/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: repoSlug,
+          target: "main",
+          source: suggestionBranch,
+          strategy: "merge-commit",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Merge failed: ${data.error || "Unknown error"}`);
+        return;
+      }
+      // Switch back to main and refresh
+      switchBranch("main");
+      fetchBranches();
+      refreshFileTree();
+      setRefreshKey((k) => k + 1);
+    },
+    [repoSlug, switchBranch, fetchBranches, refreshFileTree]
+  );
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Chat Panel — left side */}
@@ -116,6 +153,8 @@ export function AppShell() {
           branches={branches}
           onSwitchBranch={switchBranch}
           onFilesChanged={handleFilesChanged}
+          onPreviewSuggestion={handlePreviewSuggestion}
+          onAcceptSuggestion={handleAcceptSuggestion}
         />
         <ResizeHandle side="right" onResize={handleResize} />
       </div>

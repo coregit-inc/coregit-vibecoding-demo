@@ -22,6 +22,8 @@ interface ChatViewProps {
   branches?: Branch[];
   onSwitchBranch?: (name: string) => void;
   onFilesChanged?: (files: string[]) => void;
+  onPreviewSuggestion?: (branch: string) => void;
+  onAcceptSuggestion?: (branch: string) => void;
 }
 
 function loadMessages(repoSlug: string | null): UIMessage[] {
@@ -51,6 +53,8 @@ export function ChatView({
   branches = [],
   onSwitchBranch,
   onFilesChanged,
+  onPreviewSuggestion,
+  onAcceptSuggestion,
 }: ChatViewProps) {
   const initialMessages = useMemo(() => loadMessages(repoSlug), [repoSlug]);
 
@@ -154,6 +158,9 @@ export function ChatView({
         <ChatMessages
           messages={messages}
           isStreaming={isStreaming}
+          activeBranch={activeBranch}
+          onPreviewSuggestion={onPreviewSuggestion}
+          onAcceptSuggestion={onAcceptSuggestion}
           className="h-full"
         />
       </div>
