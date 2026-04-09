@@ -22,6 +22,8 @@ interface ChatMessagesProps {
   activeBranch?: string;
   onPreviewSuggestion?: (branch: string) => void;
   onAcceptSuggestion?: (branch: string) => void;
+  onBackToMain?: () => void;
+  mergingBranch?: string | null;
   className?: string;
 }
 
@@ -107,6 +109,8 @@ export function ChatMessages({
   activeBranch,
   onPreviewSuggestion,
   onAcceptSuggestion,
+  onBackToMain,
+  mergingBranch,
   className,
 }: ChatMessagesProps) {
   return (
@@ -126,8 +130,10 @@ export function ChatMessages({
                           key={group.key}
                           suggestions={group.suggestions}
                           activeBranch={activeBranch}
+                          mergingBranch={mergingBranch}
                           onPreview={onPreviewSuggestion || (() => {})}
                           onAccept={onAcceptSuggestion || (() => {})}
+                          onBackToMain={onBackToMain || (() => {})}
                         />
                       );
                     }

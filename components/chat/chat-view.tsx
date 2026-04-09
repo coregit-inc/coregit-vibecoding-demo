@@ -29,6 +29,8 @@ interface ChatViewProps {
   onFilesChanged?: (files: string[]) => void;
   onPreviewSuggestion?: (branch: string) => void;
   onAcceptSuggestion?: (branch: string) => void;
+  onBackToMain?: () => void;
+  mergingBranch?: string | null;
   fileTree?: TreeEntry[];
   isFileTreeLoading?: boolean;
   selectedFile?: string | null;
@@ -64,6 +66,8 @@ export function ChatView({
   onFilesChanged,
   onPreviewSuggestion,
   onAcceptSuggestion,
+  onBackToMain,
+  mergingBranch,
   fileTree = [],
   isFileTreeLoading = false,
   selectedFile = null,
@@ -205,6 +209,8 @@ export function ChatView({
               activeBranch={activeBranch}
               onPreviewSuggestion={onPreviewSuggestion}
               onAcceptSuggestion={onAcceptSuggestion}
+              onBackToMain={onBackToMain}
+              mergingBranch={mergingBranch}
               className="h-full"
             />
           </div>

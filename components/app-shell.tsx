@@ -27,6 +27,7 @@ export function AppShell() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [chatWidth, setChatWidth] = useState<number | null>(null);
+  const [mergingBranch, setMergingBranch] = useState<string | null>(null);
 
   // Auto-sync WebContainer when repo is restored from session (boots automatically)
   const hasSynced = useRef(false);
@@ -115,29 +116,40 @@ export function AppShell() {
   const handleAcceptSuggestion = useCallback(
     async (suggestionBranch: string) => {
       if (!repoSlug) return;
-      const res = await fetch("/api/branches/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug: repoSlug,
-          target: "main",
-          source: suggestionBranch,
-          strategy: "merge-commit",
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(`Merge failed: ${data.error || "Unknown error"}`);
-        return;
+      setMergingBranch(suggestionBranch);
+      try {
+        const res = await fetch("/api/branches/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug: repoSlug,
+            target: "main",
+            source: suggestionBranch,
+            strategy: "merge-commit",
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          alert(`Merge failed: ${data.error || "Unknown error"}`);
+          return;
+        }
+        // Switch back to main and refresh
+        switchBranch("main");
+        fetchBranches();
+        refreshFileTree();
+        setRefreshKey((k) => k + 1);
+      } finally {
+        setMergingBranch(null);
       }
-      // Switch back to main and refresh
-      switchBranch("main");
-      fetchBranches();
-      refreshFileTree();
-      setRefreshKey((k) => k + 1);
     },
     [repoSlug, switchBranch, fetchBranches, refreshFileTree]
   );
+
+  // Dismiss suggestion preview — return to main
+  const handleBackToMain = useCallback(() => {
+    fetchBranches();
+    switchBranch("main");
+  }, [fetchBranches, switchBranch]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -155,6 +167,8 @@ export function AppShell() {
           onFilesChanged={handleFilesChanged}
           onPreviewSuggestion={handlePreviewSuggestion}
           onAcceptSuggestion={handleAcceptSuggestion}
+          onBackToMain={handleBackToMain}
+          mergingBranch={mergingBranch}
           fileTree={fileTree}
           isFileTreeLoading={isFileTreeLoading}
           selectedFile={selectedFile}

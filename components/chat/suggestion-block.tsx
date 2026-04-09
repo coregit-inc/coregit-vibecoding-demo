@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
   Eye,
   Check,
   Loader2,
-  Merge,
   Sparkles,
+  Undo2,
 } from "lucide-react";
 
 interface Suggestion {
@@ -22,21 +22,21 @@ interface Suggestion {
 interface SuggestionGroupProps {
   suggestions: Suggestion[];
   activeBranch?: string;
-  isLoading?: boolean;
+  mergingBranch?: string | null;
   onPreview: (branch: string) => void;
   onAccept: (branch: string) => void;
+  onBackToMain: () => void;
 }
 
 export function SuggestionGroup({
   suggestions,
   activeBranch,
-  isLoading,
+  mergingBranch,
   onPreview,
   onAccept,
+  onBackToMain,
 }: SuggestionGroupProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const activeSuggestion = suggestions.find((s) => s.branch === activeBranch);
-  const selectedBranch = activeSuggestion?.branch ?? null;
 
   if (suggestions.length === 0) return null;
 
@@ -51,7 +51,8 @@ export function SuggestionGroup({
           <Sparkles className="size-3.5 text-primary" />
         </div>
         <span className="text-sm font-medium flex-1 text-left">
-          {suggestions.length} suggestion{suggestions.length !== 1 ? "s" : ""} from Coregit
+          {suggestions.length} suggestion{suggestions.length !== 1 ? "s" : ""}{" "}
+          from Coregit
         </span>
         <ChevronDown
           className={cn(
@@ -61,75 +62,81 @@ export function SuggestionGroup({
         />
       </button>
 
-      {/* Suggestion options */}
+      {/* Suggestion cards */}
       {isOpen && (
-        <div className="px-3.5 pb-3 space-y-1">
+        <div className="px-3.5 pb-3 space-y-2">
           {suggestions.map((suggestion) => {
-            const isActive = suggestion.branch === activeBranch;
+            const isPreviewing = suggestion.branch === activeBranch;
+            const isMerging = suggestion.branch === mergingBranch;
+
             return (
-              <button
+              <div
                 key={suggestion.branch}
-                onClick={() => onPreview(suggestion.branch)}
-                disabled={isActive}
                 className={cn(
-                  "flex items-start gap-3 w-full px-3 py-2.5 rounded-lg text-left transition-colors",
-                  isActive
-                    ? "bg-primary/8"
-                    : "hover:bg-muted/50"
+                  "rounded-lg border p-3 transition-all",
+                  isPreviewing
+                    ? "border-primary/40 ring-2 ring-primary/15 bg-primary/4"
+                    : "border-border/50 bg-card"
                 )}
               >
-                {/* Radio dot */}
-                <div className="mt-0.5 shrink-0">
-                  <div
-                    className={cn(
-                      "size-4 rounded-full border-2 transition-colors flex items-center justify-center",
-                      isActive
-                        ? "border-primary bg-primary"
-                        : "border-muted-foreground/40"
-                    )}
-                  >
-                    {isActive && (
-                      <div className="size-1.5 rounded-full bg-primary-foreground" />
-                    )}
-                  </div>
+                {/* Title */}
+                <h4
+                  className={cn(
+                    "text-sm font-semibold",
+                    isPreviewing ? "text-primary" : "text-foreground"
+                  )}
+                >
+                  {suggestion.title}
+                </h4>
+
+                {/* Description */}
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {suggestion.description}
+                </p>
+
+                {/* Actions */}
+                <div className="mt-3">
+                  {isPreviewing ? (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        disabled={isMerging}
+                        onClick={() => onAccept(suggestion.branch)}
+                      >
+                        {isMerging ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Check className="size-3.5" />
+                        )}
+                        {isMerging ? "Merging..." : "Accept"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isMerging}
+                        onClick={onBackToMain}
+                      >
+                        <Undo2 className="size-3.5" />
+                        Back
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => onPreview(suggestion.branch)}
+                    >
+                      <Eye className="size-3.5" />
+                      Preview
+                    </Button>
+                  )}
                 </div>
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <span className={cn(
-                    "text-sm font-medium",
-                    isActive && "text-primary"
-                  )}>
-                    {suggestion.title}
-                  </span>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                    {suggestion.description}
-                  </p>
-                </div>
-              </button>
+              </div>
             );
           })}
-
-          {/* Accept bar — shown when a suggestion is being previewed */}
-          {selectedBranch && (
-            <div className="flex items-center gap-2 pt-2 mt-1 border-t border-border/40">
-              <div className="flex items-center gap-1.5 text-xs text-primary flex-1">
-                <Eye className="size-3" />
-                <span>Previewing: {activeSuggestion?.title}</span>
-              </div>
-              <button
-                onClick={() => onAccept(selectedBranch)}
-                disabled={isLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : (
-                  <Merge className="size-3" />
-                )}
-                Accept & Merge
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -162,9 +169,10 @@ export function SuggestionBlock({
     <SuggestionGroup
       suggestions={[{ title, description, branch, filesWritten }]}
       activeBranch={isActive ? branch : undefined}
-      isLoading={isLoading}
+      mergingBranch={isLoading ? branch : null}
       onPreview={onPreview}
       onAccept={onAccept}
+      onBackToMain={() => {}}
     />
   );
 }
