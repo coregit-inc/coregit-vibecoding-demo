@@ -11,8 +11,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChatMessages } from "./chat-messages";
 import { PromptInput } from "./prompt-input";
+import { TemplateGallery } from "./template-gallery";
 import { FileExplorer } from "@/components/preview/file-explorer";
 import { FileViewer } from "@/components/preview/file-viewer";
+import { SearchPanel } from "@/components/search/search-panel";
 import type { TreeEntry } from "@/hooks/use-file-tree";
 
 interface Branch {
@@ -23,6 +25,7 @@ interface Branch {
 interface ChatViewProps {
   repoSlug: string | null;
   ensureRepo: () => Promise<string>;
+  onForkTemplate?: (sourceSlug: string) => Promise<string>;
   activeBranch?: string;
   branches?: Branch[];
   onSwitchBranch?: (name: string) => void;
@@ -60,6 +63,7 @@ function saveMessages(repoSlug: string | null, messages: UIMessage[]) {
 export function ChatView({
   repoSlug,
   ensureRepo,
+  onForkTemplate,
   activeBranch = "main",
   branches = [],
   onSwitchBranch,
@@ -74,7 +78,8 @@ export function ChatView({
   onFileSelect,
 }: ChatViewProps) {
   const initialMessages = useMemo(() => loadMessages(repoSlug), [repoSlug]);
-  const [activePanel, setActivePanel] = useState<"chat" | "code">("chat");
+  const [activePanel, setActivePanel] = useState<"chat" | "code" | "search">("chat");
+  const [forkingSlug, setForkingSlug] = useState<string | null>(null);
 
   const {
     messages,
@@ -123,6 +128,21 @@ export function ChatView({
     [ensureRepo, sendMessage, activeBranch]
   );
 
+  const handleForkTemplate = useCallback(
+    async (sourceSlug: string) => {
+      if (!onForkTemplate) return;
+      setForkingSlug(sourceSlug);
+      try {
+        await onForkTemplate(sourceSlug);
+      } finally {
+        setForkingSlug(null);
+      }
+    },
+    [onForkTemplate]
+  );
+
+  const showGallery = !repoSlug && messages.length === 0 && activePanel === "chat";
+
   return (
     <div className="flex flex-col overflow-hidden min-w-0 h-full">
       {/* Header */}
@@ -163,6 +183,17 @@ export function ChatView({
           >
             Code
           </button>
+          <button
+            onClick={() => setActivePanel("search")}
+            className={cn(
+              "px-4 py-1 rounded-full text-xs font-medium transition-all",
+              activePanel === "search"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Search
+          </button>
         </div>
 
         {/* Spacer */}
@@ -199,33 +230,55 @@ export function ChatView({
       </header>
 
       {/* Panel content */}
-      {activePanel === "chat" ? (
-        <>
-          {/* Messages */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <ChatMessages
-              messages={messages}
-              isStreaming={isStreaming}
-              activeBranch={activeBranch}
-              onPreviewSuggestion={onPreviewSuggestion}
-              onAcceptSuggestion={onAcceptSuggestion}
-              onBackToMain={onBackToMain}
-              mergingBranch={mergingBranch}
-              className="h-full"
-            />
-          </div>
+      {activePanel === "chat" && (
+        showGallery ? (
+          <>
+            <div className="flex-1 min-h-0 overflow-auto">
+              <TemplateGallery
+                onSelectTemplate={handleForkTemplate}
+                onStartFromScratch={() => {/* user will just type a prompt */}}
+                isLoading={forkingSlug !== null}
+                loadingSlug={forkingSlug}
+              />
+            </div>
+            <div className="shrink-0 px-4 pb-4">
+              <PromptInput
+                onSubmit={handleSend}
+                disabled={isStreaming || forkingSlug !== null}
+                isStreaming={isStreaming}
+                onStop={stop}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Messages */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <ChatMessages
+                messages={messages}
+                isStreaming={isStreaming}
+                activeBranch={activeBranch}
+                onPreviewSuggestion={onPreviewSuggestion}
+                onAcceptSuggestion={onAcceptSuggestion}
+                onBackToMain={onBackToMain}
+                mergingBranch={mergingBranch}
+                className="h-full"
+              />
+            </div>
 
-          {/* Input */}
-          <div className="shrink-0 px-4 pb-4">
-            <PromptInput
-              onSubmit={handleSend}
-              disabled={isStreaming}
-              isStreaming={isStreaming}
-              onStop={stop}
-            />
-          </div>
-        </>
-      ) : (
+            {/* Input */}
+            <div className="shrink-0 px-4 pb-4">
+              <PromptInput
+                onSubmit={handleSend}
+                disabled={isStreaming}
+                isStreaming={isStreaming}
+                onStop={stop}
+              />
+            </div>
+          </>
+        )
+      )}
+      {activePanel === "code" && (
         /* Code panel — inline file browser */
         <div className="flex flex-1 min-h-0">
           <ScrollArea className="w-48 border-r border-border/60 shrink-0">
@@ -244,6 +297,14 @@ export function ChatView({
             />
           </div>
         </div>
+      )}
+      {activePanel === "search" && (
+        <SearchPanel
+          repoSlug={repoSlug}
+          activeBranch={activeBranch}
+          onFileSelect={onFileSelect}
+          onSwitchToCode={() => setActivePanel("code")}
+        />
       )}
     </div>
   );

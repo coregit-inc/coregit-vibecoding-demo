@@ -87,5 +87,52 @@ export function useRepo() {
     }
   }, [repoSlug]);
 
-  return { repoSlug, gitUrl, isCreating, ensureRepo };
+  const forkFromTemplate = useCallback(
+    async (sourceSlug: string): Promise<string> => {
+      if (creatingRef.current) {
+        return new Promise((resolve) => {
+          const interval = setInterval(() => {
+            const slug = sessionStorage.getItem("coregit-demo-repo");
+            if (slug) {
+              clearInterval(interval);
+              resolve(slug);
+            }
+          }, 100);
+        });
+      }
+
+      creatingRef.current = true;
+      setIsCreating(true);
+
+      const slug = `demo-${nanoid()}`;
+
+      try {
+        const res = await fetch("/api/repos/fork", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: sourceSlug, slug }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Fork failed");
+        }
+
+        const data = await res.json();
+        const repoGitUrl = data.git_url || null;
+
+        sessionStorage.setItem("coregit-demo-repo", data.slug);
+        if (repoGitUrl) sessionStorage.setItem("coregit-demo-git-url", repoGitUrl);
+        setRepoSlug(data.slug);
+        setGitUrl(repoGitUrl);
+        return data.slug;
+      } finally {
+        setIsCreating(false);
+        creatingRef.current = false;
+      }
+    },
+    []
+  );
+
+  return { repoSlug, gitUrl, isCreating, ensureRepo, forkFromTemplate };
 }

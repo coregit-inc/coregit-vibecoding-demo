@@ -10,6 +10,10 @@ import {
   Loader2,
   Check,
   AlertCircle,
+  Search,
+  Sparkles,
+  GitGraph,
+  GitFork,
 } from "lucide-react";
 
 interface ToolBlockProps {
@@ -91,6 +95,16 @@ function getToolIcon(toolName: string) {
       return <Folder className="size-3.5" />;
     case "createSuggestion":
       return <FilePlus className="size-3.5" />;
+    case "searchCode":
+      return <Search className="size-3.5" />;
+    case "semanticSearch":
+      return <Sparkles className="size-3.5" />;
+    case "analyzeCode":
+      return <GitGraph className="size-3.5" />;
+    case "hybridSearch":
+      return <Sparkles className="size-3.5" />;
+    case "forkRepo":
+      return <GitFork className="size-3.5" />;
     default:
       return null;
   }
@@ -128,6 +142,40 @@ function getToolLabel(
       return result
         ? `Created suggestion: ${args.title}`
         : `Creating suggestion: ${args.title}...`;
+    case "searchCode": {
+      const total = (result as Record<string, unknown> | undefined)?.total;
+      return result
+        ? `Found ${total ?? 0} match${total !== 1 ? "es" : ""}`
+        : `Searching: ${args.query}...`;
+    }
+    case "semanticSearch": {
+      const count = (
+        (result as Record<string, unknown> | undefined)?.results as
+          | unknown[]
+          | undefined
+      )?.length;
+      return result
+        ? `Found ${count ?? 0} result${count !== 1 ? "s" : ""}`
+        : `Semantic search: ${args.query}...`;
+    }
+    case "analyzeCode":
+      return result
+        ? `Analyzed ${args.type}${args.name ? `: ${args.name}` : ""}`
+        : `Analyzing ${args.type}${args.name ? `: ${args.name}` : ""}...`;
+    case "hybridSearch": {
+      const hCount = (
+        (result as Record<string, unknown> | undefined)?.results as
+          | unknown[]
+          | undefined
+      )?.length;
+      return result
+        ? `Smart search: ${hCount ?? 0} result${hCount !== 1 ? "s" : ""}`
+        : `Smart search: ${args.query}...`;
+    }
+    case "forkRepo":
+      return result
+        ? `Forked ${args.source}`
+        : `Forking ${args.source}...`;
     default:
       return toolName;
   }
