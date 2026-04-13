@@ -14,7 +14,7 @@ const MIN_CHAT_WIDTH = 360;
 const MAX_CHAT_WIDTH_RATIO = 0.7;
 
 export function AppShell() {
-  const { repoSlug, gitUrl, ensureRepo, forkFromTemplate } = useRepo();
+  const { repoSlug, gitUrl, ensureRepo } = useRepo();
   const {
     branches,
     activeBranch,
@@ -161,7 +161,6 @@ export function AppShell() {
         <ChatView
           repoSlug={repoSlug}
           ensureRepo={ensureRepo}
-          onForkTemplate={forkFromTemplate}
           activeBranch={activeBranch}
           branches={branches}
           onSwitchBranch={switchBranch}

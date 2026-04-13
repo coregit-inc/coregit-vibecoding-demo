@@ -16,6 +16,7 @@ import { FileExplorer } from "@/components/preview/file-explorer";
 import { FileViewer } from "@/components/preview/file-viewer";
 import { SearchPanel } from "@/components/search/search-panel";
 import type { TreeEntry } from "@/hooks/use-file-tree";
+import { getTemplateBySlug } from "@/lib/templates";
 
 interface Branch {
   name: string;
@@ -25,7 +26,6 @@ interface Branch {
 interface ChatViewProps {
   repoSlug: string | null;
   ensureRepo: () => Promise<string>;
-  onForkTemplate?: (sourceSlug: string) => Promise<string>;
   activeBranch?: string;
   branches?: Branch[];
   onSwitchBranch?: (name: string) => void;
@@ -63,7 +63,6 @@ function saveMessages(repoSlug: string | null, messages: UIMessage[]) {
 export function ChatView({
   repoSlug,
   ensureRepo,
-  onForkTemplate,
   activeBranch = "main",
   branches = [],
   onSwitchBranch,
@@ -128,17 +127,22 @@ export function ChatView({
     [ensureRepo, sendMessage, activeBranch]
   );
 
-  const handleForkTemplate = useCallback(
-    async (sourceSlug: string) => {
-      if (!onForkTemplate) return;
-      setForkingSlug(sourceSlug);
+  const handleSelectTemplate = useCallback(
+    async (templateSlug: string) => {
+      const template = getTemplateBySlug(templateSlug);
+      if (!template) return;
+      setForkingSlug(templateSlug);
       try {
-        await onForkTemplate(sourceSlug);
+        const slug = await ensureRepo();
+        sendMessage(
+          { text: template.prompt },
+          { body: { repoSlug: slug, activeBranch } }
+        );
       } finally {
         setForkingSlug(null);
       }
     },
-    [onForkTemplate]
+    [ensureRepo, sendMessage, activeBranch]
   );
 
   const showGallery = !repoSlug && messages.length === 0 && activePanel === "chat";
@@ -235,7 +239,7 @@ export function ChatView({
           <>
             <div className="flex-1 min-h-0 overflow-auto">
               <TemplateGallery
-                onSelectTemplate={handleForkTemplate}
+                onSelectTemplate={handleSelectTemplate}
                 onStartFromScratch={() => {/* user will just type a prompt */}}
                 isLoading={forkingSlug !== null}
                 loadingSlug={forkingSlug}

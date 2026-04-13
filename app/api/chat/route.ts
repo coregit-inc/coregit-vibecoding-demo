@@ -58,6 +58,10 @@ When the user asks to modify existing code, ALWAYS use searchCode or readFile fi
 After committing files, briefly explain what you built and how the user can iterate on it.`;
 
 export async function POST(req: Request) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response("ANTHROPIC_API_KEY is not configured", { status: 500 });
+  }
+
   const { messages, repoSlug, activeBranch } = await req.json();
 
   if (!repoSlug) {
