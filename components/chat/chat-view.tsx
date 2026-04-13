@@ -79,6 +79,7 @@ export function ChatView({
   const initialMessages = useMemo(() => loadMessages(repoSlug), [repoSlug]);
   const [activePanel, setActivePanel] = useState<"chat" | "code" | "search">("chat");
   const [forkingSlug, setForkingSlug] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     messages,
@@ -88,7 +89,11 @@ export function ChatView({
   } = useChat({
     id: repoSlug ? `chat-${repoSlug}` : undefined,
     messages: initialMessages.length > 0 ? initialMessages : undefined,
+    onError(err) {
+      setError(err.message || "Something went wrong");
+    },
     onFinish({ message }) {
+      setError(null);
       // Extract committed files from tool results
       const changedFiles: string[] = [];
       message.parts?.forEach((part) => {
@@ -118,6 +123,7 @@ export function ChatView({
 
   const handleSend = useCallback(
     async (prompt: string) => {
+      setError(null);
       const slug = await ensureRepo();
       sendMessage(
         { text: prompt },
@@ -269,6 +275,13 @@ export function ChatView({
                 className="h-full"
               />
             </div>
+
+            {/* Error */}
+            {error && (
+              <div className="shrink-0 mx-4 mb-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
             {/* Input */}
             <div className="shrink-0 px-4 pb-4">
