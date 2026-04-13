@@ -63,20 +63,20 @@ export function PreviewPanel({
           <TabsList className="bg-muted/60 rounded-full p-0.5 h-auto">
             <TabsTrigger
               value="preview"
-              className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+              className="text-xs px-3 py-1 rounded-full data-active:text-foreground"
             >
               Preview
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+              className="text-xs px-3 py-1 rounded-full data-active:text-foreground"
             >
               History
             </TabsTrigger>
             {diffRange && (
               <TabsTrigger
                 value="diff"
-                className="text-xs px-3 py-1 rounded-full data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+                className="text-xs px-3 py-1 rounded-full data-active:text-foreground"
               >
                 Diff
               </TabsTrigger>
