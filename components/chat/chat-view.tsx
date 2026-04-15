@@ -80,6 +80,7 @@ export function ChatView({
   const [activePanel, setActivePanel] = useState<"chat" | "code" | "search">("chat");
   const [forkingSlug, setForkingSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
   const {
     messages,
@@ -113,6 +114,18 @@ export function ChatView({
     },
   });
 
+  // Send pending prompt after repo is created and useChat re-initialized with correct id
+  useEffect(() => {
+    if (pendingPrompt && repoSlug) {
+      sendMessage(
+        { text: pendingPrompt },
+        { body: { repoSlug, activeBranch } }
+      );
+      setPendingPrompt(null);
+      setForkingSlug(null);
+    }
+  }, [pendingPrompt, repoSlug, sendMessage, activeBranch]);
+
   // Persist messages to sessionStorage
   useEffect(() => {
     saveMessages(repoSlug, messages);
@@ -124,13 +137,22 @@ export function ChatView({
   const handleSend = useCallback(
     async (prompt: string) => {
       setError(null);
-      const slug = await ensureRepo();
+      if (!repoSlug) {
+        // No repo yet — create one and defer the message until useChat re-initializes
+        try {
+          await ensureRepo();
+          setPendingPrompt(prompt);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to create project");
+        }
+        return;
+      }
       sendMessage(
         { text: prompt },
-        { body: { repoSlug: slug, activeBranch } }
+        { body: { repoSlug, activeBranch } }
       );
     },
-    [ensureRepo, sendMessage, activeBranch]
+    [repoSlug, ensureRepo, sendMessage, activeBranch]
   );
 
   const handleSelectTemplate = useCallback(
@@ -138,17 +160,17 @@ export function ChatView({
       const template = getTemplateBySlug(templateSlug);
       if (!template) return;
       setForkingSlug(templateSlug);
+      setError(null);
       try {
-        const slug = await ensureRepo();
-        sendMessage(
-          { text: template.prompt },
-          { body: { repoSlug: slug, activeBranch } }
-        );
-      } finally {
+        await ensureRepo();
+        // Defer sending until useChat re-initializes with the new repoSlug id
+        setPendingPrompt(template.prompt);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create project");
         setForkingSlug(null);
       }
     },
-    [ensureRepo, sendMessage, activeBranch]
+    [ensureRepo]
   );
 
   const showGallery = !repoSlug && messages.length === 0 && activePanel === "chat";
