@@ -155,7 +155,7 @@ export function ChatMessages({
                           result={result}
                           isLoading={
                             part.state !== "output-available" &&
-                            part.state !== "error"
+                            part.state !== "output-error"
                           }
                         />
                       );

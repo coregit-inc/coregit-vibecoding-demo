@@ -114,17 +114,24 @@ export function ChatView({
     },
   });
 
+  // Keep a ref to the latest sendMessage so effects/callbacks always use the current Chat instance
+  const sendMessageRef = useRef(sendMessage);
+  sendMessageRef.current = sendMessage;
+
   // Send pending prompt after repo is created and useChat re-initialized with correct id
   useEffect(() => {
     const prompt = pendingPromptRef.current;
     if (prompt && repoSlug) {
       pendingPromptRef.current = null;
-      sendMessage(
+      // Use ref to guarantee we call the latest Chat instance's sendMessage
+      sendMessageRef.current(
         { text: prompt },
         { body: { repoSlug, activeBranch } }
-      );
+      ).catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to send message");
+      });
     }
-  }, [repoSlug, sendMessage, activeBranch]);
+  }, [repoSlug, activeBranch]);
 
   // Persist messages to sessionStorage
   useEffect(() => {
@@ -147,12 +154,16 @@ export function ChatView({
         }
         return;
       }
-      sendMessage(
-        { text: prompt },
-        { body: { repoSlug, activeBranch } }
-      );
+      try {
+        await sendMessageRef.current(
+          { text: prompt },
+          { body: { repoSlug, activeBranch } }
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to send message");
+      }
     },
-    [repoSlug, ensureRepo, sendMessage, activeBranch]
+    [repoSlug, ensureRepo, activeBranch]
   );
 
   const handleSelectTemplate = useCallback(
