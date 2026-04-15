@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UIMessage } from "ai";
 import { useTheme } from "next-themes";
 import { Moon, Sun, GitBranch, ChevronDown } from "lucide-react";
@@ -80,7 +80,7 @@ export function ChatView({
   const [activePanel, setActivePanel] = useState<"chat" | "code" | "search">("chat");
   const [forkingSlug, setForkingSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const pendingPromptRef = useRef<string | null>(null);
 
   const {
     messages,
@@ -116,15 +116,15 @@ export function ChatView({
 
   // Send pending prompt after repo is created and useChat re-initialized with correct id
   useEffect(() => {
-    if (pendingPrompt && repoSlug) {
+    const prompt = pendingPromptRef.current;
+    if (prompt && repoSlug) {
+      pendingPromptRef.current = null;
       sendMessage(
-        { text: pendingPrompt },
+        { text: prompt },
         { body: { repoSlug, activeBranch } }
       );
-      setPendingPrompt(null);
-      setForkingSlug(null);
     }
-  }, [pendingPrompt, repoSlug, sendMessage, activeBranch]);
+  }, [repoSlug, sendMessage, activeBranch]);
 
   // Persist messages to sessionStorage
   useEffect(() => {
@@ -141,7 +141,7 @@ export function ChatView({
         // No repo yet — create one and defer the message until useChat re-initializes
         try {
           await ensureRepo();
-          setPendingPrompt(prompt);
+          pendingPromptRef.current = prompt;
         } catch (err) {
           setError(err instanceof Error ? err.message : "Failed to create project");
         }
@@ -164,9 +164,10 @@ export function ChatView({
       try {
         await ensureRepo();
         // Defer sending until useChat re-initializes with the new repoSlug id
-        setPendingPrompt(template.prompt);
+        pendingPromptRef.current = template.prompt;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to create project");
+      } finally {
         setForkingSlug(null);
       }
     },
